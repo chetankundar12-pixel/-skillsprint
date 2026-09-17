@@ -1,0 +1,30 @@
+<div class="sidebar">
+  <div class="brand">
+    <div class="brand-mark">S</div>
+    <div><div class="brand-name">Skill<span>Sprint</span></div></div>
+  </div>
+
+  <div class="sidebar-user">
+    <div class="avatar"><%= (user.fullName || 'U').charAt(0).toUpperCase() %></div>
+    <div>
+      <div class="su-name"><%= user.fullName %></div>
+      <div class="su-sub"><%= user.year %> · <%= user.stream %></div>
+    </div>
+  </div>
+
+  <div class="nav-section">
+    <a href="/dashboard" class="nav-item <%= active === 'dashboard' ? 'active' : '' %>">🏠 Dashboard</a>
+    <a href="/attendance" class="nav-item <%= active === 'attendance' ? 'active' : '' %>">📅 Attendance</a>
+    <a href="/notes" class="nav-item <%= active === 'notes' ? 'active' : '' %>">📝 Notes</a>
+    <a href="/cgpa" class="nav-item <%= active === 'cgpa' ? 'active' : '' %>">🧮 CGPA Calculator</a>
+    <a href="/reminders" class="nav-item <%= active === 'reminders' ? 'active' : '' %>">🔔 Reminders</a>
+    <a href="/community" class="nav-item <%= active === 'community' ? 'active' : '' %>">💬 Community</a>
+    <div class="nav-divider"></div>
+    <a href="/logout" class="nav-item">🚪 Logout</a>
+  </div>
+
+  <div class="sidebar-footer">
+    <div class="mascot-mini"><img src="/img/mascot.png" alt="SkillSprint mascot"></div>
+    <strong style="color:var(--muted);">Plan · Study · Achieve</strong>
+  </div>
+</div>

@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Complete your profile — SkillSprint</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+  <div class="container">
+    <header class="site-header reveal">
+      <a href="/" class="brand">
+        <div class="brand-mark">S</div>
+        <div><div class="brand-name">Skill<span>Sprint</span></div></div>
+      </a>
+    </header>
+
+    <div class="auth-wrap" style="justify-content:center;">
+      <div class="auth-card wide reveal reveal-1">
+        <div class="auth-mark">🎓</div>
+        <h2>One last step, <%= user && user.name ? user.name.split(' ')[0] : 'there' %>!</h2>
+        <p class="sub">Google told us who you are — now tell us where you study, so we can drop you into the right college community.</p>
+
+        <form action="/onboarding" method="post">
+          <label class="field-label">University</label>
+          <div class="field">
+            <span>🏛️</span>
+            <select id="university" name="university" required>
+              <% universities.forEach(u => { %>
+                <option value="<%= u %>" <%= u === 'University of Mumbai' ? 'selected' : '' %>><%= u %></option>
+              <% }) %>
+            </select>
+          </div>
+
+          <label class="field-label">College</label>
+          <div class="field">
+            <span>🏫</span>
+            <select id="college" name="college"></select>
+            <input type="text" id="collegeOther" name="collegeOther" placeholder="Enter your college name" style="display:none;" />
+          </div>
+
+          <div style="display:grid; grid-template-columns:1fr 1fr; gap:14px;">
+            <div>
+              <label class="field-label">Year</label>
+              <div class="field">
+                <span>📆</span>
+                <select id="year" name="year">
+                  <% years.forEach(y => { %><option value="<%= y %>"><%= y %></option><% }) %>
+                </select>
+              </div>
+            </div>
+            <div>
+              <label class="field-label">Stream / Branch</label>
+              <div class="field">
+                <span>💻</span>
+                <select id="stream" name="stream">
+                  <% streams.forEach(s => { %><option value="<%= s %>"><%= s %></option><% }) %>
+                </select>
+              </div>
+            </div>
+          </div>
+
+          <div id="subjectPreview" class="subject-preview">
+            <h5 id="subjectTitle">Your subjects</h5>
+            <ul id="subjectList"></ul>
+          </div>
+
+          <button type="submit" class="btn btn-primary btn-block" style="margin-top:22px;">→ Go to my dashboard</button>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    window.__collegesByUniversity = <%- JSON.stringify(collegesByUniversity) %>;
+    window.__subjects = <%- JSON.stringify(subjects) %>;
+  </script>
+  <script src="/js/main.js"></script>
+</body>
+</html>

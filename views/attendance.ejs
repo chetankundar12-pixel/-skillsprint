@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Attendance — SkillSprint</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="/css/style.css">
+  <link rel="stylesheet" href="/css/dashboard.css">
+</head>
+<body>
+  <div class="app-shell">
+    <%- include('partials/sidebar', { active: 'attendance' }) %>
+
+    <div class="main">
+      <div class="topbar"><h2>Attendance</h2></div>
+
+      <div class="dcontent">
+        <div class="page-banner icon-banner reveal">
+          <div class="banner-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M16 3v4M8 3v4M3 10h18"/><path d="M8.5 15l2 2 4-4"/></svg>
+          </div>
+          <div class="page-banner-content">
+            <h1>Attendance</h1>
+            <p>Total lectures, how many you attended, and a full log you can show your teacher.</p>
+          </div>
+        </div>
+
+        <div class="section-card">
+          <div class="section-head">
+            <h3>Overall</h3>
+            <button class="focus-toggle">🎯 Focus</button>
+          </div>
+          <div class="simple-stat-grid">
+            <div class="stat-tile">
+              <div class="num"><%= overall.total %></div>
+              <div class="lbl">Total Lectures</div>
+            </div>
+            <div class="stat-tile">
+              <div class="num" style="color:var(--green);"><%= overall.attended %></div>
+              <div class="lbl">Attended</div>
+            </div>
+            <div class="stat-tile">
+              <div class="num" style="color:var(--red);"><%= overall.missed %></div>
+              <div class="lbl">Missed</div>
+            </div>
+            <div class="stat-tile">
+              <div class="num" style="color: <%= overall.pct >= 75 ? 'var(--green)' : 'var(--red)' %>;"><%= overall.total === 0 ? '—' : overall.pct + '%' %></div>
+              <div class="lbl">Percentage</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="section-card">
+          <div class="section-head">
+            <h3>Subject-wise</h3>
+            <button class="focus-toggle">🎯 Focus</button>
+          </div>
+
+          <table class="attend-table">
+            <thead>
+              <tr><th>Subject</th><th>Total</th><th>Attended</th><th>Missed</th><th>%</th><th>Mark today</th></tr>
+            </thead>
+            <tbody>
+              <% rows.forEach(r => { %>
+                <tr>
+                  <td><%= r.name %></td>
+                  <td><%= r.total %></td>
+                  <td><%= r.attended %></td>
+                  <td><%= r.missed %></td>
+                  <td style="color: <%= r.total === 0 ? 'var(--muted)' : (r.pct >= 75 ? 'var(--green)' : 'var(--red)') %>; font-weight:700;">
+                    <%= r.total === 0 ? '—' : r.pct + '%' %>
+                  </td>
+                  <td>
+                    <form method="post" action="/attendance/mark" class="mark-form-row">
+                      <input type="hidden" name="subject" value="<%= r.name %>">
+                      <input type="text" name="note" placeholder="What was taught? (optional)">
+                      <button class="mark-btn present" name="action" value="present">✓ Present</button>
+                      <button class="mark-btn absent" name="action" value="absent">✕ Absent</button>
+                    </form>
+                  </td>
+                </tr>
+              <% }) %>
+            </tbody>
+          </table>
+
+          <form method="post" action="/attendance/add-subject" class="add-subject-row">
+            <input type="text" name="newSubject" class="field" style="padding:10px 14px;" placeholder="Add another subject (e.g. an elective)">
+            <button class="btn btn-outline" type="submit">+ Add</button>
+          </form>
+          <p class="hint-text">Subjects were pre-filled from the Mumbai University syllabus for <%= user.stream %>, <%= user.year %>. Add any extra subjects your college covers.</p>
+        </div>
+
+        <div class="section-card">
+          <div class="section-head">
+            <h3>📖 Attendance History</h3>
+            <button class="focus-toggle">🎯 Focus</button>
+          </div>
+          <p class="hint-text" style="margin-bottom:12px;">Every lecture you've marked, with the date, time, and what was covered — this is what you'd show a teacher if asked for proof.</p>
+          <% if (history.length === 0) { %>
+            <p class="history-empty">No lectures marked yet — use "Mark today" above and it'll show up here.</p>
+          <% } else { %>
+            <table class="history-table">
+              <thead><tr><th>Date</th><th>Time</th><th>Subject</th><th>Status</th><th>What was taught</th></tr></thead>
+              <tbody>
+                <% history.forEach(h => { %>
+                  <tr>
+                    <td><%= h.date %></td>
+                    <td><%= h.time %></td>
+                    <td><%= h.subject %></td>
+                    <td><span class="history-status <%= h.status.toLowerCase() %>"><%= h.status %></span></td>
+                    <td class="history-note"><%= h.note || '—' %></td>
+                  </tr>
+                <% }) %>
+              </tbody>
+            </table>
+          <% } %>
+        </div>
+      </div>
+    </div>
+  </div>
+  <script src="/js/main.js"></script>
+  <script src="/js/focus.js"></script>
+</body>
+</html>

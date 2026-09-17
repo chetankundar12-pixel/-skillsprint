@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>CGPA Calculator — SkillSprint</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="/css/style.css">
+  <link rel="stylesheet" href="/css/dashboard.css">
+</head>
+<body>
+  <div class="app-shell">
+    <%- include('partials/sidebar', { active: 'cgpa' }) %>
+
+    <div class="main">
+      <div class="topbar"><h2>CGPA Calculator</h2></div>
+
+      <div class="dcontent">
+        <div class="page-banner icon-banner reveal">
+          <div class="banner-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M22 10L12 5 2 10l10 5 10-5z"/><path d="M6 12v5c0 1.5 3 3 6 3s6-1.5 6-3v-5"/></svg>
+          </div>
+          <div class="page-banner-content">
+            <h1>CGPA Calculator</h1>
+            <p>Semester by semester, right up to your overall CGPA.</p>
+          </div>
+        </div>
+
+        <div class="section-card">
+          <div class="section-head">
+            <h3>Semester-wise SGPA → Overall CGPA</h3>
+            <button class="focus-toggle">🎯 Focus</button>
+          </div>
+          <form method="post" action="/cgpa/save">
+            <div class="cgpa-grid">
+              <% for (let i = 1; i <= 7; i++) { %>
+                <div class="cgpa-field">
+                  <label>Semester <%= i %></label>
+                  <div class="field"><input type="number" step="0.01" min="0" max="10" name="sem<%= i %>" value="<%= sgpa[i] !== undefined ? sgpa[i] : '' %>" placeholder="e.g. 8.5"></div>
+                </div>
+              <% } %>
+            </div>
+            <button type="submit" class="btn btn-primary" style="margin-top:18px;">→ Save &amp; Calculate CGPA</button>
+          </form>
+
+          <div class="cgpa-result">
+            <div class="big"><%= overall %></div>
+            <div class="hint-text">Overall CGPA (out of 10) — average of the semesters you've entered.</div>
+          </div>
+        </div>
+
+        <div class="section-card">
+          <div class="section-head">
+            <h3>Calculate SGPA from subject marks</h3>
+            <button class="focus-toggle">🎯 Focus</button>
+          </div>
+          <p class="hint-text">Uses the Mumbai University CBCS 10-point scale (O = 80+ → 10, down to P = 50–54 → 4, F below 50 → 0). Exact boundaries can vary slightly by batch — check your college's gazette if it matters for an official record.</p>
+
+          <div id="marksRows" style="margin-top:14px;">
+            <div class="marks-row">
+              <input type="text" class="field" style="padding:9px 12px;" placeholder="Subject name" data-role="name">
+              <input type="number" min="0" max="100" class="field" style="padding:9px 12px;" placeholder="Marks /100" data-role="marks">
+              <button type="button" class="remove" onclick="this.parentElement.remove(); recalcSgpa();">✕</button>
+            </div>
+          </div>
+          <button type="button" id="addMarksRowBtn" class="btn btn-outline" style="margin-top:6px;">+ Add subject</button>
+
+          <table class="grade-table">
+            <thead><tr><th>Subject</th><th>Marks</th><th>Grade</th><th>Points</th></tr></thead>
+            <tbody id="gradeTableBody"></tbody>
+          </table>
+
+          <div class="cgpa-result" style="margin-top:16px;">
+            <div class="big" id="marksSgpaResult">0</div>
+            <div class="hint-text">Computed SGPA for this semester</div>
+            <div style="display:flex; gap:10px; justify-content:center; align-items:center; margin-top:14px;">
+              <span class="hint-text">Save this as</span>
+              <select id="applySemSelect" class="field" style="padding:6px 10px; width:auto;">
+                <% for (let i = 1; i <= 7; i++) { %><option value="<%= i %>">Semester <%= i %></option><% } %>
+              </select>
+              <button id="useSgpaBtn" type="button" class="btn btn-outline" style="padding:8px 16px;">Use in table above</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <script src="/js/main.js"></script>
+  <script src="/js/focus.js"></script>
+  <script src="/js/cgpa.js"></script>
+</body>
+</html>

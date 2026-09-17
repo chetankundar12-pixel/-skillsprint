@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Reminders — SkillSprint</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="/css/style.css">
+  <link rel="stylesheet" href="/css/dashboard.css">
+</head>
+<body>
+  <div class="app-shell">
+    <%- include('partials/sidebar', { active: 'reminders' }) %>
+
+    <div class="main">
+      <div class="topbar"><h2>Reminders</h2></div>
+
+      <div class="dcontent">
+        <div class="page-banner icon-banner reveal">
+          <div class="banner-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+          </div>
+          <div class="page-banner-content">
+            <h1>Reminders</h1>
+            <p>Everything a teacher assigned, in one place, by subject.</p>
+          </div>
+        </div>
+
+        <div class="section-card">
+          <div class="section-head">
+            <h3>Add a task</h3>
+            <button class="focus-toggle">🎯 Focus</button>
+          </div>
+          <form method="post" action="/reminders/add" style="display:grid; grid-template-columns:1fr 2fr 1fr auto; gap:12px; align-items:end;">
+            <div>
+              <label class="field-label">Subject</label>
+              <div class="field"><select name="subject" required>
+                <% mySubjects.forEach(s => { %><option value="<%= s %>"><%= s %></option><% }) %>
+                <option value="Other">Other</option>
+              </select></div>
+            </div>
+            <div>
+              <label class="field-label">What did the teacher assign?</label>
+              <div class="field"><input type="text" name="task" placeholder="e.g. Submit DS assignment 3" required></div>
+            </div>
+            <div>
+              <label class="field-label">Due date</label>
+              <div class="field"><input type="date" name="dueDate"></div>
+            </div>
+            <button class="btn btn-primary" type="submit">+ Add</button>
+          </form>
+        </div>
+
+        <div class="section-card">
+          <div class="section-head">
+            <h3>Your Tasks</h3>
+            <button class="focus-toggle">🎯 Focus</button>
+          </div>
+          <% if (reminders.length === 0) { %>
+            <p class="hint-text">Nothing here yet — add what your teachers assign above.</p>
+          <% } else { %>
+            <% reminders.forEach(r => { %>
+              <div class="reminder-row <%= r.done ? 'done' : '' %>">
+                <span class="r-subject"><%= r.subject %></span>
+                <span class="r-task"><%= r.task %></span>
+                <span class="r-due"><%= r.dueDate || 'no due date' %></span>
+                <form method="post" action="/reminders/toggle"><input type="hidden" name="reminderId" value="<%= r.id %>"><button class="btn btn-outline" style="padding:6px 12px; font-size:.76rem;"><%= r.done ? 'Undo' : 'Done' %></button></form>
+                <form method="post" action="/reminders/delete"><input type="hidden" name="reminderId" value="<%= r.id %>"><button class="n-del" style="background:none;border:none;">✕</button></form>
+              </div>
+            <% }) %>
+          <% } %>
+        </div>
+      </div>
+    </div>
+  </div>
+  <script src="/js/main.js"></script>
+  <script src="/js/focus.js"></script>
+</body>
+</html>

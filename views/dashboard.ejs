@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Dashboard — SkillSprint</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="/css/style.css">
+  <link rel="stylesheet" href="/css/dashboard.css">
+</head>
+<body>
+  <div class="app-shell">
+    <%- include('partials/sidebar', { active: 'dashboard' }) %>
+
+    <div class="main">
+      <div class="topbar"><h2>Dashboard</h2></div>
+
+      <div class="dcontent">
+        <div class="page-banner icon-banner reveal">
+          <div class="banner-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 9.5L12 3l9 6.5"/><path d="M5 9v11h14V9"/><path d="M9 20v-6h6v6"/></svg>
+          </div>
+          <div class="page-banner-content">
+            <h1>Welcome back, <%= user.fullName.split(' ')[0] %> 👋</h1>
+            <p><%= user.college %> · <%= user.year %> · <%= user.stream %></p>
+          </div>
+        </div>
+
+        <div class="section-card">
+          <div class="section-head">
+            <h3>📊 Your Snapshot</h3>
+            <button class="focus-toggle">🎯 Focus</button>
+          </div>
+          <div class="stat-grid">
+            <div class="stat-tile">
+              <div class="num" style="color: <%= overall && overall.eligible ? 'var(--green)' : 'var(--red)' %>;"><%= overall ? overall.pct + '%' : '—' %></div>
+              <div class="lbl">Overall Attendance <% if (overall && overall.total > 0) { %>(<%= overall.eligible ? 'exam eligible' : 'below 75%' %>)<% } %></div>
+            </div>
+            <div class="stat-tile">
+              <div class="num"><%= overallCgpaVal || '—' %></div>
+              <div class="lbl">Overall CGPA</div>
+            </div>
+            <div class="stat-tile">
+              <div class="num"><%= reminders.length %></div>
+              <div class="lbl">Pending Reminders</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="section-card">
+          <div class="section-head">
+            <h3>⚡ Quick Access</h3>
+            <button class="focus-toggle">🎯 Focus</button>
+          </div>
+          <div class="quick-links">
+            <a href="/attendance" class="quick-link"><div class="ql-icon">📅</div><div class="ql-title">Attendance</div></a>
+            <a href="/notes" class="quick-link"><div class="ql-icon">📝</div><div class="ql-title">Notes</div></a>
+            <a href="/cgpa" class="quick-link"><div class="ql-icon">🧮</div><div class="ql-title">CGPA Calculator</div></a>
+            <a href="/reminders" class="quick-link"><div class="ql-icon">🔔</div><div class="ql-title">Reminders</div></a>
+            <a href="/community" class="quick-link"><div class="ql-icon">💬</div><div class="ql-title">Community</div></a>
+          </div>
+        </div>
+
+        <div class="section-card">
+          <div class="section-head">
+            <h3>🔔 Upcoming Reminders</h3>
+            <button class="focus-toggle">🎯 Focus</button>
+          </div>
+          <% if (reminders.length === 0) { %>
+            <p class="hint-text">Nothing pending — add tasks your teacher assigns from the Reminders page.</p>
+          <% } else { %>
+            <% reminders.forEach(r => { %>
+              <div class="reminder-row">
+                <span class="r-subject"><%= r.subject %></span>
+                <span class="r-task"><%= r.task %></span>
+                <span class="r-due"><%= r.dueDate || '' %></span>
+              </div>
+            <% }) %>
+          <% } %>
+        </div>
+      </div>
+    </div>
+  </div>
+  <script src="/js/main.js"></script>
+  <script src="/js/focus.js"></script>
+</body>
+</html>

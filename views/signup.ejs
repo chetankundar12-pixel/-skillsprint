@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Sign Up — SkillSprint</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+  <div class="container">
+    <header class="site-header reveal">
+      <a href="/" class="brand">
+        <div class="brand-mark">S</div>
+        <div>
+          <div class="brand-name">Skill<span>Sprint</span></div>
+          <div class="brand-tag">Smart Student Progress Tracker</div>
+        </div>
+      </a>
+      <nav class="site-nav">
+        <a href="/login" class="btn btn-outline">Login →</a>
+      </nav>
+    </header>
+
+    <div class="auth-wrap" style="justify-content:center;">
+      <div class="auth-card wide reveal reveal-1">
+        <div class="mascot-auth" style="margin-top:0; margin-bottom:10px;">
+          <img src="/img/mascot.png" alt="SkillSprint mascot" style="max-width:150px;">
+        </div>
+        <div class="auth-mark">🎓</div>
+        <h2>Create your account</h2>
+        <p class="sub">Set up your profile once — your college community and syllabus follow automatically.</p>
+
+        <a href="/auth/google" class="google-btn btn">
+          <svg width="18" height="18" viewBox="0 0 18 18"><path fill="#4285F4" d="M17.64 9.2c0-.64-.06-1.25-.16-1.84H9v3.48h4.84c-.21 1.13-.84 2.09-1.8 2.73v2.27h2.91c1.7-1.57 2.69-3.88 2.69-6.64z"/><path fill="#34A853" d="M9 18c2.43 0 4.47-.8 5.96-2.18l-2.91-2.27c-.81.54-1.84.86-3.05.86-2.34 0-4.33-1.58-5.04-3.71H.96v2.34C2.44 15.98 5.48 18 9 18z"/><path fill="#FBBC05" d="M3.96 10.7A5.4 5.4 0 0 1 3.68 9c0-.59.1-1.17.28-1.7V4.96H.96A9 9 0 0 0 0 9c0 1.45.35 2.83.96 4.04l3-2.34z"/><path fill="#EA4335" d="M9 3.58c1.32 0 2.51.45 3.44 1.35l2.58-2.58C13.46.89 11.43 0 9 0 5.48 0 2.44 2.02.96 4.96l3 2.34C4.67 5.16 6.66 3.58 9 3.58z"/></svg>
+          Sign up with Google
+        </a>
+        <div class="divider">or sign up with email</div>
+
+        <form action="/signup" method="post">
+          <label class="field-label">Full Name</label>
+          <div class="field"><span>👤</span><input type="text" name="fullName" placeholder="e.g. Chetan Kundar" required /></div>
+
+          <label class="field-label">University</label>
+          <div class="field">
+            <span>🏛️</span>
+            <select id="university" name="university" required>
+              <% universities.forEach(u => { %>
+                <option value="<%= u %>" <%= u === 'University of Mumbai' ? 'selected' : '' %>><%= u %></option>
+              <% }) %>
+            </select>
+          </div>
+
+          <label class="field-label">College</label>
+          <div class="field">
+            <span>🏫</span>
+            <select id="college" name="college"></select>
+            <input type="text" id="collegeOther" name="collegeOther" placeholder="Enter your college name" style="display:none;" />
+          </div>
+
+          <div style="display:grid; grid-template-columns:1fr 1fr; gap:14px;">
+            <div>
+              <label class="field-label">Year</label>
+              <div class="field">
+                <span>📆</span>
+                <select id="year" name="year">
+                  <% years.forEach(y => { %><option value="<%= y %>"><%= y %></option><% }) %>
+                </select>
+              </div>
+            </div>
+            <div>
+              <label class="field-label">Stream / Branch</label>
+              <div class="field">
+                <span>💻</span>
+                <select id="stream" name="stream">
+                  <% streams.forEach(s => { %><option value="<%= s %>"><%= s %></option><% }) %>
+                </select>
+              </div>
+            </div>
+          </div>
+
+          <div id="subjectPreview" class="subject-preview">
+            <h5 id="subjectTitle">Your subjects</h5>
+            <ul id="subjectList"></ul>
+          </div>
+
+          <label class="field-label">Gmail</label>
+          <div class="field"><span>✉️</span><input type="email" name="email" placeholder="you@gmail.com" required /></div>
+
+          <label class="field-label">Password</label>
+          <div class="field"><span>🔒</span><input type="password" name="password" placeholder="Create a password" required /></div>
+
+          <button type="submit" class="btn btn-primary btn-block" style="margin-top:22px;">→ Create Account</button>
+        </form>
+
+        <div class="auth-footer">Already have an account? <a href="/login">Login →</a></div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    window.__collegesByUniversity = <%- JSON.stringify(collegesByUniversity) %>;
+    window.__subjects = <%- JSON.stringify(subjects) %>;
+  </script>
+  <script src="/js/main.js"></script>
+</body>
+</html>

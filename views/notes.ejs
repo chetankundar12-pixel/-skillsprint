@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Notes — SkillSprint</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="/css/style.css">
+  <link rel="stylesheet" href="/css/dashboard.css">
+</head>
+<body>
+  <div class="app-shell">
+    <%- include('partials/sidebar', { active: 'notes' }) %>
+
+    <div class="main">
+      <div class="topbar"><h2>Notes</h2></div>
+
+      <div class="dcontent">
+        <div class="page-banner icon-banner reveal">
+          <div class="banner-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M4 4h13a2 2 0 0 1 2 2v14H6a2 2 0 0 1-2-2V4z"/><path d="M4 4v16M8 8h7M8 12h7M8 16h4"/></svg>
+          </div>
+          <div class="page-banner-content">
+            <h1>Notes</h1>
+            <p>Write it down right after class — future-you will thank you.</p>
+          </div>
+        </div>
+
+        <div class="section-card">
+          <div class="section-head">
+            <h3>Write a new note</h3>
+            <button class="focus-toggle">🎯 Focus</button>
+          </div>
+          <form method="post" action="/notes/add">
+            <div style="display:grid; grid-template-columns:1fr 2fr; gap:14px; margin-bottom:14px;">
+              <div class="field">
+                <select name="subject" required>
+                  <% mySubjects.forEach(s => { %><option value="<%= s %>"><%= s %></option><% }) %>
+                  <option value="Other">Other</option>
+                </select>
+              </div>
+              <div class="field"><input type="text" name="title" placeholder="Note title (e.g. Lecture 4 — Recursion)" required></div>
+            </div>
+            <textarea name="content" rows="5" placeholder="Write your lecture notes here..." required
+              style="width:100%; background:#0c1024; border:1px solid var(--border); border-radius:12px; padding:14px; color:var(--text); font-family:inherit; font-size:.92rem; resize:vertical;"></textarea>
+            <button type="submit" class="btn btn-primary" style="margin-top:14px;">→ Save Note</button>
+          </form>
+        </div>
+
+        <div class="section-card">
+          <div class="section-head">
+            <h3>Your Notes (<%= notes.length %>)</h3>
+            <button class="focus-toggle">🎯 Focus</button>
+          </div>
+          <% if (notes.length === 0) { %>
+            <p class="hint-text">No notes yet — write your first one above.</p>
+          <% } else { %>
+            <div class="note-grid">
+              <% notes.forEach(n => { %>
+                <div class="note-card">
+                  <div class="n-subject"><%= n.subject %></div>
+                  <h4><%= n.title %></h4>
+                  <p><%= n.content %></p>
+                  <div class="n-foot">
+                    <span><%= new Date(n.createdAt).toLocaleDateString() %></span>
+                    <form method="post" action="/notes/delete">
+                      <input type="hidden" name="noteId" value="<%= n.id %>">
+                      <button class="n-del" type="submit">Delete</button>
+                    </form>
+                  </div>
+                </div>
+              <% }) %>
+            </div>
+          <% } %>
+        </div>
+      </div>
+    </div>
+  </div>
+  <script src="/js/main.js"></script>
+  <script src="/js/focus.js"></script>
+</body>
+</html>

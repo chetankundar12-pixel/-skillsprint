@@ -17,6 +17,15 @@ const cgpaMath = require('./lib/cgpaMath');
 const syllabus = require('./lib/syllabus');
 
 const app = express();
+
+// Render (and most hosts like Heroku/Railway) terminate HTTPS at a proxy in
+// front of your app, then forward the request to your app as plain HTTP.
+// Without this line, Express thinks every request is http://, which makes
+// Passport build the Google OAuth callback URL as http://... instead of
+// https://... — causing Google's redirect_uri_mismatch error. This tells
+// Express to trust the proxy's X-Forwarded-Proto header instead.
+app.set('trust proxy', 1);
+
 const server = http.createServer(app);
 const io = new Server(server);
 const PORT = process.env.PORT || 3000;
@@ -81,6 +90,7 @@ if (googleReady) {
         req.session.user = req.user;
         return res.redirect('/dashboard');
       }
+      req.session.user = req.user;
       res.redirect('/onboarding');
     }
   );
@@ -126,23 +136,29 @@ app.post('/signup', (req, res) => {
   res.redirect('/dashboard');
 });
 
+// NOTE: these two routes used to check `req.user` (Passport's session), but
+// every other route in this file checks `req.session.user` instead — the one
+// place Passport actually sets `req.user` on later requests is the Google
+// login flow, so an email/password user landing here always had `req.user`
+// undefined and got bounced to /login even while fully logged in. Both
+// routes below now check `req.session.user`, matching the rest of the app.
 app.get('/onboarding', (req, res) => {
-  if (!req.user) return res.redirect('/login');
+  if (!req.session.user) return res.redirect('/login');
   res.render('onboarding', {
     universities: universities.universities,
     collegesByUniversity: universities.collegesByUniversity,
     years: universities.years,
     streams: universities.streams,
     subjects: subjectsData,
-    user: req.user
+    user: req.session.user
   });
 });
 
 app.post('/onboarding', (req, res) => {
-  if (!req.user) return res.redirect('/login');
+  if (!req.session.user) return res.redirect('/login');
   const { university, college, collegeOther, year, stream } = req.body;
   const user = {
-    ...req.user,
+    ...req.session.user,
     university, college: college || collegeOther, year, stream,
     authProvider: 'google',
     onboarded: true
@@ -174,46 +190,24 @@ app.get('/attendance', requireAuth, (req, res) => {
   if (!attendance) {
     const seeded = syllabus.subjectsForYearStream(user.year, user.stream);
     const subjects = {};
-    seeded.forEach(s => { subjects[s.name] = { attended: 0, missed: 0, history: [] }; });
+    seeded.forEach(s => { subjects[s.name] = { attended: 0, missed: 0 }; });
     attendance = { subjects };
     store.saveAttendance(user.id, attendance);
   }
-  // migrate any older records that don't have a history array yet
-  Object.values(attendance.subjects).forEach(s => { if (!s.history) s.history = []; });
-
   const rows = Object.entries(attendance.subjects).map(([name, s]) => ({
     name, ...attendanceMath.subjectStats(s.attended, s.missed)
   }));
   const overall = attendanceMath.overallStats(attendance.subjects);
-
-  const history = [];
-  Object.entries(attendance.subjects).forEach(([name, s]) => {
-    (s.history || []).forEach(h => history.push({ subject: name, ...h }));
-  });
-  history.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
-
-  res.render('attendance', { user, rows, overall, history });
+  res.render('attendance', { user, rows, overall });
 });
 
 app.post('/attendance/mark', requireAuth, (req, res) => {
   const user = req.session.user;
-  const { subject, action, note } = req.body;
+  const { subject, action } = req.body;
   const attendance = store.getAttendance(user.id) || { subjects: {} };
-  if (!attendance.subjects[subject]) attendance.subjects[subject] = { attended: 0, missed: 0, history: [] };
-  if (!attendance.subjects[subject].history) attendance.subjects[subject].history = [];
-
+  if (!attendance.subjects[subject]) attendance.subjects[subject] = { attended: 0, missed: 0 };
   if (action === 'present') attendance.subjects[subject].attended += 1;
   if (action === 'absent') attendance.subjects[subject].missed += 1;
-
-  const now = new Date();
-  attendance.subjects[subject].history.push({
-    timestamp: now.toISOString(),
-    date: now.toLocaleDateString('en-IN'),
-    time: now.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' }),
-    status: action === 'present' ? 'Present' : 'Absent',
-    note: (note || '').trim()
-  });
-
   store.saveAttendance(user.id, attendance);
   res.redirect('/attendance');
 });
@@ -224,7 +218,7 @@ app.post('/attendance/add-subject', requireAuth, (req, res) => {
   if (newSubject && newSubject.trim()) {
     const attendance = store.getAttendance(user.id) || { subjects: {} };
     if (!attendance.subjects[newSubject.trim()]) {
-      attendance.subjects[newSubject.trim()] = { attended: 0, missed: 0, history: [] };
+      attendance.subjects[newSubject.trim()] = { attended: 0, missed: 0 };
       store.saveAttendance(user.id, attendance);
     }
   }

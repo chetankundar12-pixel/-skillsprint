@@ -17,6 +17,7 @@ const cgpaMath = require('./lib/cgpaMath');
 const syllabus = require('./lib/syllabus');
 
 const app = express();
+app.set('trust proxy', 1);
 
 // Render (and most hosts like Heroku/Railway) terminate HTTPS at a proxy in
 // front of your app, then forward the request to your app as plain HTTP.

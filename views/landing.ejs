@@ -5,6 +5,26 @@
   <title>SkillSprint — Your Goals. Our Tracker. Better You.</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <link rel="stylesheet" href="/css/style.css">
+  <style>
+    /* Bigger, background-free hero mascot image */
+    .mascot-wrap {
+      overflow: visible;
+    }
+    .mascot-entrance {
+      overflow: visible;
+    }
+    .mascot-img {
+      max-width: none;
+      width: min(560px, 130%);
+      filter: drop-shadow(0 25px 35px rgba(0, 0, 0, 0.35));
+      background: none;
+    }
+    @media (max-width: 768px) {
+      .mascot-img {
+        width: min(420px, 100%);
+      }
+    }
+  </style>
 </head>
 <body>
   <div class="container">
@@ -48,7 +68,7 @@
           <span class="sparkle s3"></span>
           <span class="sparkle s4"></span>
           <div class="mascot-entrance">
-            <img class="mascot-img" src="/img/duo.jpg" alt="Chetan and Aaditya">
+            <img class="mascot-img" src="/img/duo.png" alt="Chetan and Aaditya">
           </div>
         </div>
         <div class="floating-card fc1">

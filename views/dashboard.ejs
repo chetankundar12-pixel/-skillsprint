@@ -9,19 +9,18 @@
 </head>
 <body>
   <div class="app-shell">
-    <%- include('partials/sidebar', { active: 'dashboard' }) %>
+    <%- include('partials/sidebar', { active: 'dashboard', user }) %>
 
     <div class="main">
-      <div class="topbar"><h2>Dashboard</h2></div>
+      <%- include('partials/topbar', { user }) %>
 
       <div class="dcontent">
-        <div class="page-banner icon-banner reveal">
-          <div class="banner-icon">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 9.5L12 3l9 6.5"/><path d="M5 9v11h14V9"/><path d="M9 20v-6h6v6"/></svg>
-          </div>
-          <div class="page-banner-content">
-            <h1>Welcome back, <%= user.fullName.split(' ')[0] %> 👋</h1>
-            <p><%= user.college %> · <%= user.year %> · <%= user.stream %></p>
+        <div class="photo-banner reveal">
+          <%- include('partials/banner-photo', { user }) %>
+          <div class="banner-body">
+            <h1>Welcome back, <span class="name-accent"><%= user.fullName.split(' ')[0] %>!</span></h1>
+            <div class="banner-tagline"><span class="t1">Keep learning, keep</span> <span class="t2">sprinting. ⚡</span></div>
+            <p class="banner-desc">Every small step you take today brings you closer to your big dreams.</p>
           </div>
         </div>
 
@@ -30,10 +29,10 @@
             <h3>📊 Your Snapshot</h3>
             <button class="focus-toggle">🎯 Focus</button>
           </div>
-          <div class="stat-grid">
+          <div class="stat-grid" style="grid-template-columns:repeat(4,1fr);">
             <div class="stat-tile">
-              <div class="num" style="color: <%= overall && overall.eligible ? 'var(--green)' : 'var(--red)' %>;"><%= overall ? overall.pct + '%' : '—' %></div>
-              <div class="lbl">Overall Attendance <% if (overall && overall.total > 0) { %>(<%= overall.eligible ? 'exam eligible' : 'below 75%' %>)<% } %></div>
+              <div class="num" style="color: <%= overall && overall.pct >= 75 ? 'var(--green)' : 'var(--red)' %>;"><%= overall && overall.total > 0 ? overall.pct + '%' : '—' %></div>
+              <div class="lbl">Attendance</div>
             </div>
             <div class="stat-tile">
               <div class="num"><%= overallCgpaVal || '—' %></div>
@@ -42,6 +41,10 @@
             <div class="stat-tile">
               <div class="num"><%= reminders.length %></div>
               <div class="lbl">Pending Reminders</div>
+            </div>
+            <div class="stat-tile">
+              <div class="num"><%= notesCount %></div>
+              <div class="lbl">Notes Saved</div>
             </div>
           </div>
         </div>
@@ -76,6 +79,12 @@
               </div>
             <% }) %>
           <% } %>
+        </div>
+
+        <div class="motivation-card">
+          <div class="m-icon">💡</div>
+          <h4>Your Goals Matter</h4>
+          <p>Stay consistent. You're doing great!</p>
         </div>
       </div>
     </div>

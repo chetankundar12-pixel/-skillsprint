@@ -1,0 +1,16 @@
+<div class="topbar2">
+  <div class="topbar-search">
+    🔍 <input type="text" placeholder="Search courses, topics, or resources...">
+  </div>
+  <div class="topbar-bell">🔔<span class="dot"></span></div>
+  <div class="topbar-user2">
+    <% if (user.fullName && user.fullName.split(' ')[0].toLowerCase() === 'chetan') { %>
+      <img src="/img/chetan.jpg" alt="<%= user.fullName %>">
+    <% } else if (user.fullName && ['aaditya','aditiya'].includes(user.fullName.split(' ')[0].toLowerCase())) { %>
+      <img src="/img/aaditya.jpg" alt="<%= user.fullName %>">
+    <% } else { %>
+      <div class="avatar"><%= (user.fullName || 'U').charAt(0).toUpperCase() %></div>
+    <% } %>
+    <span class="tu-name"><%= user.fullName ? user.fullName.split(' ')[0] : '' %></span> ▾
+  </div>
+</div>

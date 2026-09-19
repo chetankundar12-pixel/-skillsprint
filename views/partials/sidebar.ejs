@@ -1,11 +1,17 @@
 <div class="sidebar">
   <div class="brand">
-    <div class="brand-mark">S</div>
-    <div><div class="brand-name">Skill<span>Sprint</span></div></div>
+    <div class="brand-mark">⚡</div>
+    <div><div class="brand-name">Skill <span>Sprint</span></div></div>
   </div>
 
   <div class="sidebar-user">
-    <div class="avatar"><%= (user.fullName || 'U').charAt(0).toUpperCase() %></div>
+    <% if (user.fullName && user.fullName.split(' ')[0].toLowerCase() === 'chetan') { %>
+      <img class="avatar-photo" src="/img/chetan.jpg" alt="<%= user.fullName %>">
+    <% } else if (user.fullName && ['aaditya','aditiya'].includes(user.fullName.split(' ')[0].toLowerCase())) { %>
+      <img class="avatar-photo" src="/img/aaditya.jpg" alt="<%= user.fullName %>">
+    <% } else { %>
+      <div class="avatar"><%= (user.fullName || 'U').charAt(0).toUpperCase() %></div>
+    <% } %>
     <div>
       <div class="su-name"><%= user.fullName %></div>
       <div class="su-sub"><%= user.year %> · <%= user.stream %></div>
@@ -14,9 +20,10 @@
 
   <div class="nav-section">
     <a href="/dashboard" class="nav-item <%= active === 'dashboard' ? 'active' : '' %>">🏠 Dashboard</a>
-    <a href="/attendance" class="nav-item <%= active === 'attendance' ? 'active' : '' %>">📅 Attendance</a>
-    <a href="/notes" class="nav-item <%= active === 'notes' ? 'active' : '' %>">📝 Notes</a>
+    <a href="/notes" class="nav-item <%= active === 'notes' ? 'active' : '' %>">📝 Notes & Resources</a>
     <a href="/cgpa" class="nav-item <%= active === 'cgpa' ? 'active' : '' %>">🧮 CGPA Calculator</a>
+    <a href="/attendance" class="nav-item <%= active === 'attendance' ? 'active' : '' %>">📅 Attendance</a>
+    <a href="/progress" class="nav-item <%= active === 'progress' ? 'active' : '' %>">📈 Progress</a>
     <a href="/reminders" class="nav-item <%= active === 'reminders' ? 'active' : '' %>">🔔 Reminders</a>
     <a href="/community" class="nav-item <%= active === 'community' ? 'active' : '' %>">💬 Community</a>
     <div class="nav-divider"></div>
@@ -24,7 +31,9 @@
   </div>
 
   <div class="sidebar-footer">
-    <div class="mascot-mini"><%- include('handshake') %></div>
-    <strong style="color:var(--muted);">Plan · Study · Achieve</strong>
+    <strong style="color:var(--muted); display:flex; align-items:center; gap:5px; font-size:.78rem;">⚡ Small Steps Big Dreams</strong>
+    <div style="height:3px; border-radius:999px; background:#1c2140; margin-top:7px; overflow:hidden; width:70%;">
+      <div style="height:100%; width:68%; background:var(--grad-wide); border-radius:999px;"></div>
+    </div>
   </div>
 </div>

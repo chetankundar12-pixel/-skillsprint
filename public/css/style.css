@@ -303,3 +303,13 @@ body::before{
 .stats-band.icon-banner{ background: linear-gradient(120deg, rgba(139,92,246,.28), rgba(34,211,238,.14), rgba(236,72,153,.12)); }
 .stats-band.icon-banner .band-icon{ position:absolute; right:30px; top:50%; transform:translateY(-50%); width:220px; height:220px; opacity:.16; color:var(--text); }
 .stats-band.icon-banner .band-icon svg{ width:100%; height:100%; }
+
+/* ================= Photo edge-fade (blends hard photo edges into the page) ================= */
+.mascot-img{
+  -webkit-mask-image: radial-gradient(ellipse 62% 68% at 50% 42%, #000 60%, transparent 92%);
+  mask-image: radial-gradient(ellipse 62% 68% at 50% 42%, #000 60%, transparent 92%);
+}
+.mascot-auth img, .mascot-auth svg{
+  -webkit-mask-image: radial-gradient(ellipse 60% 68% at 50% 40%, #000 55%, transparent 90%);
+  mask-image: radial-gradient(ellipse 60% 68% at 50% 40%, #000 55%, transparent 90%);
+}

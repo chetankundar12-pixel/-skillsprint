@@ -17,16 +17,6 @@ const cgpaMath = require('./lib/cgpaMath');
 const syllabus = require('./lib/syllabus');
 
 const app = express();
-app.set('trust proxy', 1);
-
-// Render (and most hosts like Heroku/Railway) terminate HTTPS at a proxy in
-// front of your app, then forward the request to your app as plain HTTP.
-// Without this line, Express thinks every request is http://, which makes
-// Passport build the Google OAuth callback URL as http://... instead of
-// https://... — causing Google's redirect_uri_mismatch error. This tells
-// Express to trust the proxy's X-Forwarded-Proto header instead.
-app.set('trust proxy', 1);
-
 const server = http.createServer(app);
 const io = new Server(server);
 const PORT = process.env.PORT || 3000;
@@ -67,7 +57,7 @@ if (googleReady) {
   passport.use(new GoogleStrategy({
     clientID: process.env.GOOGLE_CLIENT_ID,
     clientSecret: process.env.GOOGLE_CLIENT_SECRET,
-   callbackURL: 'https://skillsprint-wjwb.onrender.com/auth/google/callback'
+    callbackURL: '/auth/google/callback'
   }, (accessToken, refreshToken, profile, done) => {
     const email = profile.emails && profile.emails[0] && profile.emails[0].value;
     const existing = email && store.getUser(email);
@@ -91,7 +81,6 @@ if (googleReady) {
         req.session.user = req.user;
         return res.redirect('/dashboard');
       }
-      req.session.user = req.user;
       res.redirect('/onboarding');
     }
   );
@@ -137,29 +126,23 @@ app.post('/signup', (req, res) => {
   res.redirect('/dashboard');
 });
 
-// NOTE: these two routes used to check `req.user` (Passport's session), but
-// every other route in this file checks `req.session.user` instead — the one
-// place Passport actually sets `req.user` on later requests is the Google
-// login flow, so an email/password user landing here always had `req.user`
-// undefined and got bounced to /login even while fully logged in. Both
-// routes below now check `req.session.user`, matching the rest of the app.
 app.get('/onboarding', (req, res) => {
-  if (!req.session.user) return res.redirect('/login');
+  if (!req.user) return res.redirect('/login');
   res.render('onboarding', {
     universities: universities.universities,
     collegesByUniversity: universities.collegesByUniversity,
     years: universities.years,
     streams: universities.streams,
     subjects: subjectsData,
-    user: req.session.user
+    user: req.user
   });
 });
 
 app.post('/onboarding', (req, res) => {
-  if (!req.session.user) return res.redirect('/login');
+  if (!req.user) return res.redirect('/login');
   const { university, college, collegeOther, year, stream } = req.body;
   const user = {
-    ...req.session.user,
+    ...req.user,
     university, college: college || collegeOther, year, stream,
     authProvider: 'google',
     onboarded: true
@@ -180,9 +163,46 @@ app.get('/dashboard', requireAuth, (req, res) => {
   const overall = attendance ? attendanceMath.overallStats(attendance.subjects || {}) : null;
   const reminders = store.getReminders(user.id).filter(r => !r.done).slice(0, 4);
   const cgpa = store.getCgpa(user.id);
-  const overallCgpaVal = cgpaMath.overallCgpa(cgpa.sgpa || {});
-  res.render('dashboard', { user, overall, reminders, overallCgpaVal });
+  const overallCgpaVal = cgpaMath.overallCgpa(cgpa.semesters || {});
+  const notesCount = store.getNotes(user.id).length;
+  res.render('dashboard', { user, overall, reminders, overallCgpaVal, notesCount });
 });
+
+// ---------------- Progress (real, combined view) ----------------
+app.get('/progress', requireAuth, (req, res) => {
+  const user = req.session.user;
+  const attendance = store.getAttendance(user.id);
+  const overallAttendance = attendance ? attendanceMath.overallStats(attendance.subjects || {}) : attendanceMath.overallStats({});
+  const subjectRows = attendance ? Object.entries(attendance.subjects).map(([name, s]) => ({
+    name, ...attendanceMath.subjectStats(s.attended, s.missed)
+  })) : [];
+
+  const cgpa = store.getCgpa(user.id);
+  const semesters = cgpa.semesters || {};
+  const overallCgpaVal = cgpaMath.overallCgpa(semesters);
+  const semTrend = [];
+  for (let i = 1; i <= 8; i++) {
+    if (semesters[i] && semesters[i].subjects && semesters[i].subjects.length) {
+      semTrend.push({ sem: i, sgpa: cgpaMath.computeSemester(semesters[i].subjects).sgpa });
+    }
+  }
+
+  const notes = store.getNotes(user.id);
+  const notesBySubject = {};
+  notes.forEach(n => { notesBySubject[n.subject] = (notesBySubject[n.subject] || 0) + 1; });
+
+  const reminders = store.getReminders(user.id);
+  const remindersDone = reminders.filter(r => r.done).length;
+  const remindersTotal = reminders.length;
+  const remindersOnTrack = remindersTotal > 0 ? Math.round((remindersDone / remindersTotal) * 100) : 100;
+
+  res.render('progress', {
+    user, overallAttendance, subjectRows, overallCgpaVal, semTrend,
+    notesCount: notes.length, notesBySubject,
+    remindersDone, remindersTotal, remindersOnTrack
+  });
+});
+
 
 // ---------------- Attendance ----------------
 app.get('/attendance', requireAuth, (req, res) => {
@@ -191,24 +211,68 @@ app.get('/attendance', requireAuth, (req, res) => {
   if (!attendance) {
     const seeded = syllabus.subjectsForYearStream(user.year, user.stream);
     const subjects = {};
-    seeded.forEach(s => { subjects[s.name] = { attended: 0, missed: 0 }; });
+    seeded.forEach(s => { subjects[s.name] = { attended: 0, missed: 0, history: [] }; });
     attendance = { subjects };
     store.saveAttendance(user.id, attendance);
   }
+  // migrate any older records that don't have a history array yet
+  Object.values(attendance.subjects).forEach(s => { if (!s.history) s.history = []; });
+
   const rows = Object.entries(attendance.subjects).map(([name, s]) => ({
     name, ...attendanceMath.subjectStats(s.attended, s.missed)
   }));
   const overall = attendanceMath.overallStats(attendance.subjects);
-  res.render('attendance', { user, rows, overall });
+
+  const history = [];
+  Object.entries(attendance.subjects).forEach(([name, s]) => {
+    (s.history || []).forEach(h => history.push({ subject: name, ...h }));
+  });
+  history.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+
+  // Build this month's calendar, marking each day present/absent/none from real history
+  const now = new Date();
+  const year = now.getFullYear(), month = now.getMonth();
+  const firstDay = new Date(year, month, 1);
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
+  const startOffset = (firstDay.getDay() + 6) % 7; // make Monday index 0
+  const dayStatus = {}; // '1'-'31' -> 'present' | 'absent'
+  history.forEach(h => {
+    const d = new Date(h.timestamp);
+    if (d.getFullYear() === year && d.getMonth() === month) {
+      const day = d.getDate();
+      // present wins if mixed that day
+      if (h.status === 'Present') dayStatus[day] = 'present';
+      else if (!dayStatus[day]) dayStatus[day] = 'absent';
+    }
+  });
+  const calendarDays = [];
+  for (let i = 0; i < startOffset; i++) calendarDays.push(null);
+  for (let d = 1; d <= daysInMonth; d++) calendarDays.push(d);
+  const monthLabel = now.toLocaleDateString('en-IN', { month: 'long', year: 'numeric' });
+  const todayDate = now.getDate();
+
+  res.render('attendance', { user, rows, overall, history, calendarDays, monthLabel, todayDate, dayStatus });
 });
 
 app.post('/attendance/mark', requireAuth, (req, res) => {
   const user = req.session.user;
-  const { subject, action } = req.body;
+  const { subject, action, note } = req.body;
   const attendance = store.getAttendance(user.id) || { subjects: {} };
-  if (!attendance.subjects[subject]) attendance.subjects[subject] = { attended: 0, missed: 0 };
+  if (!attendance.subjects[subject]) attendance.subjects[subject] = { attended: 0, missed: 0, history: [] };
+  if (!attendance.subjects[subject].history) attendance.subjects[subject].history = [];
+
   if (action === 'present') attendance.subjects[subject].attended += 1;
   if (action === 'absent') attendance.subjects[subject].missed += 1;
+
+  const now = new Date();
+  attendance.subjects[subject].history.push({
+    timestamp: now.toISOString(),
+    date: now.toLocaleDateString('en-IN'),
+    time: now.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' }),
+    status: action === 'present' ? 'Present' : 'Absent',
+    note: (note || '').trim()
+  });
+
   store.saveAttendance(user.id, attendance);
   res.redirect('/attendance');
 });
@@ -219,7 +283,7 @@ app.post('/attendance/add-subject', requireAuth, (req, res) => {
   if (newSubject && newSubject.trim()) {
     const attendance = store.getAttendance(user.id) || { subjects: {} };
     if (!attendance.subjects[newSubject.trim()]) {
-      attendance.subjects[newSubject.trim()] = { attended: 0, missed: 0 };
+      attendance.subjects[newSubject.trim()] = { attended: 0, missed: 0, history: [] };
       store.saveAttendance(user.id, attendance);
     }
   }
@@ -274,20 +338,34 @@ app.get('/reminders', requireAuth, (req, res) => {
 // ---------------- CGPA ----------------
 app.get('/cgpa', requireAuth, (req, res) => {
   const user = req.session.user;
+  const currentSem = Math.min(8, Math.max(1, parseInt(req.query.sem, 10) || 1));
   const cgpa = store.getCgpa(user.id);
-  const overall = cgpaMath.overallCgpa(cgpa.sgpa || {});
-  res.render('cgpa', { user, sgpa: cgpa.sgpa || {}, overall, scale: cgpaMath.SCALE });
+  const semesters = cgpa.semesters || {};
+  const subjects = (semesters[currentSem] && semesters[currentSem].subjects) || [];
+  const semStats = cgpaMath.computeSemester(subjects);
+  const overallCgpaVal = cgpaMath.overallCgpa(semesters);
+  res.render('cgpa', { user, currentSem, subjects, semStats, overallCgpaVal, scale: cgpaMath.SCALE });
 });
 
-app.post('/cgpa/save', requireAuth, (req, res) => {
+app.post('/cgpa/save-semester', requireAuth, (req, res) => {
   const user = req.session.user;
-  const sgpa = {};
-  for (let i = 1; i <= 7; i++) {
-    const val = req.body['sem' + i];
-    if (val !== '' && val !== undefined) sgpa[i] = Number(val);
-  }
-  store.saveCgpa(user.id, { sgpa });
-  res.redirect('/cgpa');
+  const sem = Math.min(8, Math.max(1, parseInt(req.body.sem, 10) || 1));
+  const names = [].concat(req.body.name || []);
+  const credits = [].concat(req.body.credits || []);
+  const marks = [].concat(req.body.marks || []);
+
+  const subjects = names.map((n, i) => ({
+    id: id(),
+    name: n,
+    credits: credits[i],
+    marks: marks[i]
+  })).filter(s => s.name && s.name.trim());
+
+  const cgpa = store.getCgpa(user.id);
+  const semesters = cgpa.semesters || {};
+  semesters[sem] = { subjects };
+  store.saveCgpa(user.id, { semesters });
+  res.redirect('/cgpa?sem=' + sem);
 });
 
 // ---------------- Community ----------------

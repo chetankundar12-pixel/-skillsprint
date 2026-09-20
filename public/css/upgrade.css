@@ -348,3 +348,23 @@ select:focus-visible {
   }
   a[href]::after { content: " (" attr(href) ")"; font-size: .75em; color: #555; }
 }
+
+
+/* ---------- 11. Brand mark -------------------------------------------
+   The old mark was a bold letterform in a colored box — the most
+   generic placeholder shape for a logo. This is a custom monoline "S"
+   stroke instead (see partials/logo.ejs), so it reads as a made mark,
+   with the wordmark's tracking tightened to sit at the same visual
+   weight as the icon next to it. */
+.brand-mark svg {
+  display: block;
+  width: 58%;
+  height: 58%;
+}
+.brand-name {
+  letter-spacing: -.03em;
+  font-weight: 700;
+}
+.brand-tag {
+  letter-spacing: .01em;
+}

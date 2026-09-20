@@ -1,0 +1,38 @@
+<%
+  // Shared <head> for every SkillSprint page.
+  //
+  // Include it with:  include partials/head  and pass:
+  //   title : page name. " — SkillSprint" is appended automatically.
+  //   app   : true (default) also loads dashboard.css, for logged-in pages.
+  //           Pass false on landing / login / signup.
+  //   desc  : optional meta description override.
+  //
+  // NOTE: never write EJS tag characters inside these comments.
+  // EJS scans raw text for its delimiters and does not understand
+  // JavaScript comments, so a stray closing delimiter in here ends
+  // the block early and breaks the template.
+
+  var _app  = (typeof app  === 'undefined') ? true : app;
+  var _desc = (typeof desc === 'undefined')
+    ? 'Track attendance, calculate CGPA, take lecture notes and stay connected with your batch — built for Indian engineering students.'
+    : desc;
+%>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title><%= title %> — SkillSprint</title>
+<meta name="description" content="<%= _desc %>">
+<meta name="theme-color" content="#060814">
+
+<meta property="og:type" content="website">
+<meta property="og:title" content="<%= title %> — SkillSprint">
+<meta property="og:description" content="<%= _desc %>">
+<meta property="og:image" content="/img/duo.jpg">
+<meta name="twitter:card" content="summary_large_image">
+
+<link rel="icon" href="/img/favicon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+
+<link rel="stylesheet" href="/css/style.css">
+<% if (_app) { %><link rel="stylesheet" href="/css/dashboard.css"><% } %>
+<link rel="stylesheet" href="/css/upgrade.css">

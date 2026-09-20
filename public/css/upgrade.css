@@ -1,0 +1,350 @@
+/* =========================================================
+   SkillSprint — upgrade layer
+   Load AFTER style.css and dashboard.css. Purely additive:
+   nothing here deletes your existing rules, it only refines them.
+   ========================================================= */
+
+/* ---------- 1. Type ------------------------------------------------
+   style.css asks for "Inter" but nothing ever loaded it, so every page
+   was silently rendering in Segoe UI. Now it's real, plus a display
+   face so headings stop looking like body text at a bigger size. */
+@import url('https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=Inter:wght@400;500;600;700;800&display=swap');
+
+:root {
+  --font-body: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --font-display: "Bricolage Grotesque", "Inter", -apple-system, "Segoe UI", sans-serif;
+
+  /* Contrast fix: #8b91b3 on #060814 fails WCAG AA for small text. */
+  --muted: #9ba2c6;
+  --muted-soft: #757ca0;
+
+  /* Elevation, used instead of one flat shadow everywhere */
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, .4);
+  --shadow-md: 0 8px 24px -8px rgba(0, 0, 0, .6);
+  --shadow-lg: 0 24px 60px -20px rgba(0, 0, 0, .75);
+
+  --ring: 0 0 0 3px rgba(139, 92, 246, .45);
+  --ease: cubic-bezier(.16, 1, .3, 1);
+}
+
+body { font-family: var(--font-body); -webkit-font-smoothing: antialiased; }
+
+h1, h2, h3, h4,
+.brand-name, .hero h1, .num, .hero-stats div b {
+  font-family: var(--font-display);
+  letter-spacing: -.02em;
+}
+
+/* Tabular figures so stat numbers don't jitter as they update */
+.num, .hero-stats div b, .stats-band b { font-variant-numeric: tabular-nums; }
+
+/* Readable measure — body copy was running well past 80 characters */
+.hero p.lede, .banner-desc, .hint-text, .feature-card p { max-width: 62ch; }
+
+
+/* ---------- 2. Accessibility --------------------------------------
+   Keyboard users currently get no visible focus anywhere, because
+   .btn and .field set no :focus style at all. */
+:focus-visible {
+  outline: none;
+  box-shadow: var(--ring);
+  border-radius: 10px;
+}
+.btn:focus-visible,
+a:focus-visible,
+button:focus-visible,
+input:focus-visible,
+textarea:focus-visible,
+select:focus-visible {
+  box-shadow: var(--ring);
+  border-color: var(--purple);
+}
+
+.skip-link {
+  position: absolute;
+  left: 16px;
+  top: -60px;
+  z-index: 999;
+  background: var(--panel);
+  border: 1px solid var(--purple);
+  color: var(--text);
+  padding: 10px 18px;
+  border-radius: 10px;
+  font-weight: 600;
+  transition: top .2s var(--ease);
+}
+.skip-link:focus { top: 16px; }
+
+/* Screen-reader-only helper for labelling icon-only controls */
+.sr-only {
+  position: absolute;
+  width: 1px; height: 1px;
+  padding: 0; margin: -1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+
+/* ---------- 3. Motion ----------------------------------------------
+   Every .reveal fires on page load whether or not it's on screen, so
+   content below the fold has already finished animating before you
+   scroll to it. This makes reveals fire when they're actually seen. */
+.reveal-on-scroll {
+  opacity: 0;
+  transform: translateY(22px);
+  transition: opacity .7s var(--ease), transform .7s var(--ease);
+}
+.reveal-on-scroll.is-visible { opacity: 1; transform: none; }
+
+/* Respect the OS "reduce motion" setting — required for users with
+   vestibular disorders, and your mascot float/glow/sparkles are exactly
+   the kind of looping motion that triggers it. */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: .01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: .01ms !important;
+    scroll-behavior: auto !important;
+  }
+  .reveal-on-scroll { opacity: 1; transform: none; }
+  .mascot-img, .mascot-glow, .sparkle, .floating-card { animation: none !important; }
+}
+
+
+/* ---------- 4. Buttons & fields ------------------------------------ */
+.btn {
+  transition: transform .18s var(--ease), box-shadow .18s var(--ease), background .18s var(--ease);
+  -webkit-tap-highlight-color: transparent;
+}
+.btn:active { transform: translateY(0) scale(.985); }
+.btn[disabled], .btn[aria-disabled="true"] {
+  opacity: .5;
+  pointer-events: none;
+}
+.btn-primary { box-shadow: 0 10px 28px -8px rgba(139, 92, 246, .55); }
+.btn-primary:hover { box-shadow: 0 16px 36px -10px rgba(139, 92, 246, .65); }
+
+.field {
+  transition: border-color .18s var(--ease), background .18s var(--ease);
+}
+.field:focus-within {
+  border-color: var(--purple);
+  background: rgba(139, 92, 246, .06);
+}
+.field input::placeholder { color: var(--muted-soft); }
+
+/* Minimum 44px tap targets on touch devices (Apple/Google guideline) */
+@media (pointer: coarse) {
+  .btn, .quick-link, .site-nav a, .sidebar a { min-height: 44px; }
+}
+
+
+/* ---------- 5. Cards & surfaces ------------------------------------
+   Same radius on everything flattens hierarchy. Big containers now read
+   as containers, small tiles as tiles. */
+.section-card, .feature-card, .auth-card {
+  box-shadow: var(--shadow-md);
+  transition: transform .22s var(--ease), border-color .22s var(--ease), box-shadow .22s var(--ease);
+}
+.section-card { border-radius: 20px; }
+.stat-tile, .reminder-row, .quick-link { border-radius: 12px; }
+.auth-card { border-radius: 24px; box-shadow: var(--shadow-lg); }
+
+.stat-tile { transition: transform .18s var(--ease), background .18s var(--ease); }
+.stat-tile:hover { transform: translateY(-3px); }
+
+.quick-link { transition: transform .18s var(--ease), background .18s var(--ease), border-color .18s var(--ease); }
+.quick-link:hover { transform: translateY(-3px); border-color: rgba(139, 92, 246, .45); }
+
+/* Empty states read as guidance, not as a shrug */
+.hint-text {
+  border-left: 2px solid rgba(139, 92, 246, .5);
+  padding-left: 14px;
+  color: var(--muted);
+}
+
+
+/* ---------- 6. Header & mobile navigation --------------------------
+   Below 700px the nav buttons wrap into the brand and break the header.
+   This turns it into a proper toggle menu.
+
+   .site-header is now a full-width element OUTSIDE .container (see
+   landing.ejs), so its solid background reaches both edges of the
+   viewport. Previously it sat inside .container, so its background
+   only covered the container's inner width — outside that, style.css's
+   full-screen "aurora" glow (body::before) showed through as purple/cyan
+   strips at the left and right edges. .header-inner re-applies the same
+   max-width/padding as .container so the logo and nav still line up
+   with the rest of the page. */
+.header-inner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: nowrap;
+  gap: 16px;
+  padding-top: 0;
+  padding-bottom: 0;
+}
+.site-header {
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  width: 100%;
+  background: var(--bg);
+  border-bottom: 1px solid transparent;
+  transition: border-color .25s var(--ease);
+}
+.site-header.is-stuck { border-bottom-color: var(--border); }
+
+.nav-toggle {
+  display: none;
+  background: rgba(255, 255, 255, .04);
+  border: 1px solid var(--border);
+  color: var(--text);
+  width: 44px; height: 44px;
+  border-radius: 12px;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.15rem;
+}
+
+@media (max-width: 860px) {
+  .container { padding: 0 20px; }
+  .nav-toggle { display: inline-flex; }
+  .site-nav {
+    position: absolute;
+    top: calc(100% + 8px);
+    right: 20px;
+    left: 20px;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 18px;
+    padding: 16px;
+    box-shadow: var(--shadow-lg);
+    display: none;
+  }
+  .site-nav.is-open { display: flex; }
+  .site-nav .btn { width: 100%; }
+  .brand-tag { display: none; }
+}
+
+
+/* ---------- 7. Responsive repairs ----------------------------------
+   Your breakpoints stop at 800–900px, so phones get a squashed desktop
+   layout. These fill the gap. */
+@media (max-width: 900px) {
+  .hero h1 { font-size: clamp(2.1rem, 8vw, 3rem); }
+  .hero-stats { gap: 22px; flex-wrap: wrap; }
+  .feature-grid { grid-template-columns: repeat(2, 1fr); }
+}
+
+@media (max-width: 620px) {
+  .hero { gap: 32px; padding: 24px 0 40px; }
+  .hero-cta { flex-direction: column; align-items: stretch; }
+  .hero-cta .btn { width: 100%; }
+  .feature-grid { grid-template-columns: 1fr; }
+  .feature-icon-tile { height: 92px; }
+  .mascot-wrap, .hero-media { min-height: 320px; }
+  .floating-card { position: static; margin: 10px auto 0; animation: none; }
+
+  /* Dashboard: the 4-across stat grid is inline-styled on dashboard.ejs,
+     so this needs the !important to win. */
+  .stat-grid { grid-template-columns: repeat(2, 1fr) !important; }
+
+  .reminder-row {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 4px;
+  }
+  .r-due { color: var(--muted); font-size: .8rem; }
+
+  .auth-wrap { grid-template-columns: 1fr; }
+  .auth-side { display: none; }
+  .auth-card { padding: 26px 20px; }
+}
+
+
+/* ---------- 8. Footer ----------------------------------------------- */
+.site-footer {
+  border-top: 1px solid var(--border);
+  margin-top: 40px;
+  padding: 40px 0 34px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 24px;
+  align-items: center;
+  justify-content: space-between;
+  color: var(--muted);
+  font-size: .88rem;
+}
+.site-footer nav { display: flex; gap: 20px; flex-wrap: wrap; }
+.site-footer nav a { color: var(--muted); }
+.site-footer nav a:hover { color: var(--text); }
+
+
+/* ---------- 9. Landing hero photo -----------------------------------
+   style.css's .mascot-img rule applies a radial mask that fades a
+   CUTOUT ILLUSTRATION to transparent at the edges — meant to sit on
+   top of the gradient box behind it. duo.jpg is a real rectangular
+   photo, not a cutout, so that mask isn't right for it, and neither
+   is treating it as a small centered image: it should fill its frame
+   like a photo, the way the box was originally sized to expect.
+
+   The photo is pinned to fill .hero-photo edge-to-edge (position:
+   absolute; inset:0) rather than sized by width/height, so it always
+   covers the full frame regardless of the grid's computed height.
+   .mascot-wrap is forced to position:static so .hero-photo — not
+   mascot-wrap — is the box the photo fills. */
+.hero-photo {
+  position: relative;
+  border-radius: 24px;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  min-height: 460px;
+}
+.hero-photo .mascot-wrap {
+  position: static;
+  display: block;
+  min-height: 0;
+}
+.hero-photo .mascot-img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  max-width: none;
+  object-fit: cover;
+  mask-image: none;
+  -webkit-mask-image: none;
+  opacity: 1;
+  border-radius: 0;
+  box-shadow: none;
+  cursor: pointer;
+}
+@media (max-width: 768px) {
+  .hero-photo { min-height: 340px; }
+}
+@media (max-width: 620px) {
+  .hero-photo { min-height: 300px; }
+}
+
+
+/* ---------- 10. Print ------------------------------------------------
+   Students print attendance sheets and notes. This makes that usable. */
+@media print {
+  body { background: #fff; color: #000; }
+  .sidebar, .topbar, .site-header, .site-footer,
+  .focus-toggle, .btn, .mascot-wrap, .floating-card { display: none !important; }
+  .section-card, .main, .dcontent {
+    background: #fff !important;
+    border: 1px solid #ccc;
+    box-shadow: none !important;
+    color: #000;
+  }
+  a[href]::after { content: " (" attr(href) ")"; font-size: .75em; color: #555; }
+}

@@ -306,6 +306,7 @@ select:focus-visible {
   overflow: hidden;
   border: 1px solid var(--border);
   min-height: 460px;
+  margin-top: 32px;
 }
 .hero-photo .mascot-wrap {
   position: static;

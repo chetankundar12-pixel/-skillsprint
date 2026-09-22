@@ -5,12 +5,13 @@
   <title>Complete your profile — SkillSprint</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <link rel="stylesheet" href="/css/style.css">
+  <link rel="stylesheet" href="/css/upgrade.css">
 </head>
 <body>
   <div class="container">
     <header class="site-header reveal">
       <a href="/" class="brand">
-        <div class="brand-mark">S</div>
+        <div class="brand-mark" aria-hidden="true"><%- include('partials/logo') %></div>
         <div><div class="brand-name">Skill<span>Sprint</span></div></div>
       </a>
     </header>
@@ -39,7 +40,7 @@
             <input type="text" id="collegeOther" name="collegeOther" placeholder="Enter your college name" style="display:none;" />
           </div>
 
-          <div style="display:grid; grid-template-columns:1fr 1fr; gap:14px;">
+          <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:14px;">
             <div>
               <label class="field-label">Year</label>
               <div class="field">
@@ -56,6 +57,16 @@
                 <select id="stream" name="stream">
                   <% streams.forEach(s => { %><option value="<%= s %>"><%= s %></option><% }) %>
                 </select>
+              </div>
+            </div>
+            <div>
+              <!-- Options are filled by main.js once Year is picked —
+                   two semesters per year (Second Year -> Sem 3 / Sem 4,
+                   and so on). -->
+              <label class="field-label">Semester</label>
+              <div class="field">
+                <span>🗓️</span>
+                <select id="semester" name="semester"></select>
               </div>
             </div>
           </div>

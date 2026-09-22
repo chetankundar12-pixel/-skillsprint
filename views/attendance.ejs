@@ -28,6 +28,16 @@
           <div class="section-card">
             <div class="section-head">
               <h3>Overall Attendance</h3>
+              <% if (availableSems && availableSems.length) { %>
+                <form method="get" action="/attendance" style="display:flex; align-items:center; gap:8px;">
+                  <span class="hint-text">Semester</span>
+                  <select name="sem" class="field" style="padding:6px 10px; width:auto;" onchange="this.form.submit()">
+                    <% availableSems.forEach(s => { %>
+                      <option value="<%= s %>" <%= currentSem === s ? 'selected' : '' %>>Semester <%= s %></option>
+                    <% }) %>
+                  </select>
+                </form>
+              <% } %>
               <button class="focus-toggle">🎯 Focus</button>
             </div>
             <% const pct = overall.total === 0 ? 0 : overall.pct; const circumference = 2 * Math.PI * 50; const dash = (pct/100) * circumference; %>
@@ -102,6 +112,7 @@
           <% }) %>
 
           <form method="post" action="/attendance/add-subject" class="add-subject-row">
+            <input type="hidden" name="sem" value="<%= currentSem || '' %>">
             <input type="text" name="newSubject" class="field" style="padding:10px 14px;" placeholder="Add another subject (e.g. an elective)">
             <button class="btn btn-outline" type="submit">+ Add</button>
           </form>
@@ -121,6 +132,7 @@
                   <td>
                     <form method="post" action="/attendance/mark" id="markform-<%= r.name.replace(/[^a-zA-Z0-9]/g,'') %>" class="mark-form-row">
                       <input type="hidden" name="subject" value="<%= r.name %>">
+                      <input type="hidden" name="sem" value="<%= currentSem || '' %>">
                       <input type="text" name="note" placeholder="What was taught? (optional)">
                     </form>
                   </td>

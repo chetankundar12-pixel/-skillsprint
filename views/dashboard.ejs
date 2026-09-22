@@ -27,16 +27,26 @@
         <div class="section-card">
           <div class="section-head">
             <h3>📊 Your Snapshot</h3>
+            <% if (availableSems && availableSems.length) { %>
+              <form method="get" action="/dashboard" style="display:flex; align-items:center; gap:8px;">
+                <span class="hint-text">Semester</span>
+                <select name="sem" class="field" style="padding:6px 10px; width:auto;" onchange="this.form.submit()">
+                  <% availableSems.forEach(s => { %>
+                    <option value="<%= s %>" <%= currentSem === s ? 'selected' : '' %>>Semester <%= s %></option>
+                  <% }) %>
+                </select>
+              </form>
+            <% } %>
             <button class="focus-toggle">🎯 Focus</button>
           </div>
           <div class="stat-grid" style="grid-template-columns:repeat(4,1fr);">
             <div class="stat-tile">
               <div class="num" style="color: <%= overall && overall.pct >= 75 ? 'var(--green)' : 'var(--red)' %>;"><%= overall && overall.total > 0 ? overall.pct + '%' : '—' %></div>
-              <div class="lbl">Attendance</div>
+              <div class="lbl">Attendance<% if (currentSem) { %> (Sem <%= currentSem %>)<% } %></div>
             </div>
             <div class="stat-tile">
-              <div class="num"><%= overallCgpaVal || '—' %></div>
-              <div class="lbl">Overall CGPA</div>
+              <div class="num"><%= currentSem && semSgpaVal !== null ? semSgpaVal : (overallCgpaVal || '—') %></div>
+              <div class="lbl"><%= currentSem && semSgpaVal !== null ? 'SGPA (Sem ' + currentSem + ')' : 'Overall CGPA' %></div>
             </div>
             <div class="stat-tile">
               <div class="num"><%= reminders.length %></div>

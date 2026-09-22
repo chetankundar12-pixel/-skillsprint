@@ -159,13 +159,32 @@ app.get('/logout', (req, res) => {
 // ---------------- Dashboard ----------------
 app.get('/dashboard', requireAuth, (req, res) => {
   const user = req.session.user;
+  const availableSems = syllabus.semsForYear(user.year);
+  const requestedSem = Number(req.query.sem);
+  const currentSem = availableSems.includes(requestedSem) ? requestedSem : (availableSems[0] || null);
+
   const attendance = store.getAttendance(user.id);
-  const overall = attendance ? attendanceMath.overallStats(attendance.subjects || {}) : null;
+  let overall = null;
+  if (attendance) {
+    const visible = currentSem
+      ? Object.fromEntries(Object.entries(attendance.subjects || {}).filter(([, s]) => s.sem === currentSem || s.sem == null))
+      : (attendance.subjects || {});
+    overall = attendanceMath.overallStats(visible);
+  }
+
   const reminders = store.getReminders(user.id).filter(r => !r.done).slice(0, 4);
   const cgpa = store.getCgpa(user.id);
-  const overallCgpaVal = cgpaMath.overallCgpa(cgpa.semesters || {});
+  const semesters = cgpa.semesters || {};
+  const overallCgpaVal = cgpaMath.overallCgpa(semesters);
+  const semSgpaVal = (currentSem && semesters[currentSem] && semesters[currentSem].subjects && semesters[currentSem].subjects.length)
+    ? cgpaMath.computeSemester(semesters[currentSem].subjects).sgpa
+    : null;
   const notesCount = store.getNotes(user.id).length;
-  res.render('dashboard', { user, overall, reminders, overallCgpaVal, notesCount });
+
+  res.render('dashboard', {
+    user, overall, reminders, overallCgpaVal, semSgpaVal, notesCount,
+    currentSem, availableSems
+  });
 });
 
 // ---------------- Progress (real, combined view) ----------------
@@ -207,24 +226,48 @@ app.get('/progress', requireAuth, (req, res) => {
 // ---------------- Attendance ----------------
 app.get('/attendance', requireAuth, (req, res) => {
   const user = req.session.user;
+  const availableSems = syllabus.semsForYear(user.year);
+  const requestedSem = Number(req.query.sem);
+  const currentSem = availableSems.includes(requestedSem) ? requestedSem : (availableSems[0] || null);
+
   let attendance = store.getAttendance(user.id);
   if (!attendance) {
     const seeded = syllabus.subjectsForYearStream(user.year, user.stream);
     const subjects = {};
-    seeded.forEach(s => { subjects[s.name] = { attended: 0, missed: 0, history: [] }; });
+    seeded.forEach(s => { subjects[s.name] = { sem: s.sem, attended: 0, missed: 0, history: [] }; });
     attendance = { subjects };
     store.saveAttendance(user.id, attendance);
   }
-  // migrate any older records that don't have a history array yet
-  Object.values(attendance.subjects).forEach(s => { if (!s.history) s.history = []; });
 
-  const rows = Object.entries(attendance.subjects).map(([name, s]) => ({
+  // Migrate any subjects saved before semesters existed on this record:
+  // fill in history arrays, and look up which semester a subject belongs
+  // to by name so nothing the student already marked disappears.
+  let migrated = false;
+  Object.entries(attendance.subjects).forEach(([name, s]) => {
+    if (!s.history) { s.history = []; migrated = true; }
+    if (s.sem === undefined) {
+      s.sem = syllabus.semForSubjectName(user.stream, name);
+      migrated = true;
+    }
+  });
+  if (migrated) store.saveAttendance(user.id, attendance);
+
+  // Subjects with a known, matching semester show for that semester.
+  // Subjects with no known semester (e.g. a custom elective typed in
+  // before this feature existed) stay visible in every semester rather
+  // than silently disappearing.
+  const visibleEntries = Object.entries(attendance.subjects).filter(([, s]) =>
+    !currentSem || s.sem === currentSem || s.sem === null
+  );
+  const visibleSubjects = Object.fromEntries(visibleEntries);
+
+  const rows = visibleEntries.map(([name, s]) => ({
     name, ...attendanceMath.subjectStats(s.attended, s.missed)
   }));
-  const overall = attendanceMath.overallStats(attendance.subjects);
+  const overall = attendanceMath.overallStats(visibleSubjects);
 
   const history = [];
-  Object.entries(attendance.subjects).forEach(([name, s]) => {
+  visibleEntries.forEach(([name, s]) => {
     (s.history || []).forEach(h => history.push({ subject: name, ...h }));
   });
   history.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
@@ -251,14 +294,17 @@ app.get('/attendance', requireAuth, (req, res) => {
   const monthLabel = now.toLocaleDateString('en-IN', { month: 'long', year: 'numeric' });
   const todayDate = now.getDate();
 
-  res.render('attendance', { user, rows, overall, history, calendarDays, monthLabel, todayDate, dayStatus });
+  res.render('attendance', {
+    user, rows, overall, history, calendarDays, monthLabel, todayDate, dayStatus,
+    currentSem, availableSems
+  });
 });
 
 app.post('/attendance/mark', requireAuth, (req, res) => {
   const user = req.session.user;
-  const { subject, action, note } = req.body;
+  const { subject, action, note, sem } = req.body;
   const attendance = store.getAttendance(user.id) || { subjects: {} };
-  if (!attendance.subjects[subject]) attendance.subjects[subject] = { attended: 0, missed: 0, history: [] };
+  if (!attendance.subjects[subject]) attendance.subjects[subject] = { sem: sem ? Number(sem) : null, attended: 0, missed: 0, history: [] };
   if (!attendance.subjects[subject].history) attendance.subjects[subject].history = [];
 
   if (action === 'present') attendance.subjects[subject].attended += 1;
@@ -274,20 +320,20 @@ app.post('/attendance/mark', requireAuth, (req, res) => {
   });
 
   store.saveAttendance(user.id, attendance);
-  res.redirect('/attendance');
+  res.redirect('/attendance' + (sem ? '?sem=' + sem : ''));
 });
 
 app.post('/attendance/add-subject', requireAuth, (req, res) => {
   const user = req.session.user;
-  const { newSubject } = req.body;
+  const { newSubject, sem } = req.body;
   if (newSubject && newSubject.trim()) {
     const attendance = store.getAttendance(user.id) || { subjects: {} };
     if (!attendance.subjects[newSubject.trim()]) {
-      attendance.subjects[newSubject.trim()] = { attended: 0, missed: 0, history: [] };
+      attendance.subjects[newSubject.trim()] = { sem: sem ? Number(sem) : null, attended: 0, missed: 0, history: [] };
       store.saveAttendance(user.id, attendance);
     }
   }
-  res.redirect('/attendance');
+  res.redirect('/attendance' + (sem ? '?sem=' + sem : ''));
 });
 
 // ---------------- Notes ----------------

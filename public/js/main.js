@@ -20,6 +20,7 @@ function initUniversityForm() {
   const collegeText = document.getElementById('collegeOther');
   const yearSelect = document.getElementById('year');
   const streamSelect = document.getElementById('stream');
+  const semSelect = document.getElementById('semester');
   const preview = document.getElementById('subjectPreview');
   const previewList = document.getElementById('subjectList');
   const previewTitle = document.getElementById('subjectTitle');
@@ -47,37 +48,67 @@ function initUniversityForm() {
     }
   }
 
+  // Was only defined for First/Second Year — Third and Fourth Year
+  // fell through to [] and silently showed no subjects at all.
   function yearToSem(yearLabel) {
-    if (yearLabel === 'First Year') return [1, 2];
+    if (yearLabel === 'First Year')  return [1, 2];
     if (yearLabel === 'Second Year') return [3, 4];
+    if (yearLabel === 'Third Year')  return [5, 6];
+    if (yearLabel === 'Fourth Year') return [7, 8];
     return [];
   }
 
+  // Fills the Semester dropdown with just the two semesters that
+  // belong to the selected Year (e.g. Second Year -> Sem 3, Sem 4),
+  // keeping the previously chosen semester if it's still valid.
+  function refreshSemesterOptions() {
+    if (!semSelect) return;
+    const sems = yearToSem(yearSelect.value);
+    const prevValue = semSelect.value;
+    semSelect.innerHTML = '';
+    sems.forEach(sem => {
+      const opt = document.createElement('option');
+      opt.value = sem;
+      opt.textContent = `Semester ${sem}`;
+      semSelect.appendChild(opt);
+    });
+    if (sems.map(String).includes(prevValue)) semSelect.value = prevValue;
+  }
+
+  // Previously rendered BOTH semesters of the selected year at once.
+  // Now renders only the one semester picked in the dropdown, and drops
+  // the "Sem N:" prefix from each line since the dropdown already says
+  // which semester this is.
   function refreshSubjects() {
     const stream = streamSelect.value;
-    const sems = yearToSem(yearSelect.value);
     const streamData = subjects[stream];
-    if (!streamData || sems.length === 0) {
+    const sem = semSelect ? Number(semSelect.value) : null;
+
+    if (!streamData || !sem) {
       preview.classList.remove('show');
       return;
     }
-    previewTitle.textContent = `${stream} — ${yearSelect.value} subjects`;
+
+    previewTitle.textContent = `${stream} — Semester ${sem} subjects`;
     previewList.innerHTML = '';
-    sems.forEach(sem => {
-      (streamData[sem] || []).forEach(sub => {
-        const li = document.createElement('li');
-        li.textContent = `Sem ${sem}: ${sub}`;
-        previewList.appendChild(li);
-      });
+    (streamData[sem] || []).forEach(sub => {
+      const li = document.createElement('li');
+      li.textContent = sub;
+      previewList.appendChild(li);
     });
     preview.classList.add('show');
   }
 
   uniSelect.addEventListener('change', refreshColleges);
-  yearSelect.addEventListener('change', refreshSubjects);
+  yearSelect.addEventListener('change', () => {
+    refreshSemesterOptions();
+    refreshSubjects();
+  });
   streamSelect.addEventListener('change', refreshSubjects);
+  if (semSelect) semSelect.addEventListener('change', refreshSubjects);
 
   refreshColleges();
+  refreshSemesterOptions();
   refreshSubjects();
 }
 

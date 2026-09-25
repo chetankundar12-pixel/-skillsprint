@@ -50,6 +50,27 @@ function communityRoomKey(user) {
   return `${user.college}|${user.year}|${user.stream}`;
 }
 
+// Keeps "which semester am I looking at" in sync across Dashboard,
+// Attendance and CGPA. If the URL has a valid ?sem=, that becomes the
+// new session-wide choice. Otherwise it falls back to whatever was
+// last picked (on any of those pages), and only falls back to the
+// first available semester if nothing's been picked yet or the saved
+// choice isn't valid on this particular page (e.g. Attendance only
+// has real subjects for the student's own year, so a semester chosen
+// on Dashboard that isn't in Attendance's own range just falls back
+// gracefully instead of erroring).
+function resolveSem(req, availableSems) {
+  const requested = Number(req.query.sem);
+  if (availableSems.includes(requested)) {
+    req.session.currentSem = requested;
+    return requested;
+  }
+  if (availableSems.includes(req.session.currentSem)) {
+    return req.session.currentSem;
+  }
+  return availableSems[0] || null;
+}
+
 // --- Google OAuth (activates once you add real keys to .env) ---
 const googleReady = process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET;
 
@@ -159,9 +180,13 @@ app.get('/logout', (req, res) => {
 // ---------------- Dashboard ----------------
 app.get('/dashboard', requireAuth, (req, res) => {
   const user = req.session.user;
-  const availableSems = syllabus.semsForYear(user.year);
-  const requestedSem = Number(req.query.sem);
-  const currentSem = availableSems.includes(requestedSem) ? requestedSem : (availableSems[0] || null);
+  // Full Sem 1-8 range, same as the CGPA page — CGPA data isn't tied to
+  // the student's current year (they may want to check a past or future
+  // semester), so this shouldn't be limited to syllabus.semsForYear
+  // the way Attendance is (Attendance is limited on purpose, since it
+  // only has real subjects loaded for the student's actual year).
+  const availableSems = [1, 2, 3, 4, 5, 6, 7, 8];
+  const currentSem = resolveSem(req, availableSems);
 
   const attendance = store.getAttendance(user.id);
   let overall = null;
@@ -226,9 +251,14 @@ app.get('/progress', requireAuth, (req, res) => {
 // ---------------- Attendance ----------------
 app.get('/attendance', requireAuth, (req, res) => {
   const user = req.session.user;
-  const availableSems = syllabus.semsForYear(user.year);
-  const requestedSem = Number(req.query.sem);
-  const currentSem = availableSems.includes(requestedSem) ? requestedSem : (availableSems[0] || null);
+  // Was syllabus.semsForYear(user.year) — but "year" is set once at
+  // onboarding and can never change (signing in with Google after that
+  // skips straight to /dashboard), so a First Year student would be
+  // stuck on Sem 1-2 forever, even though the switcher itself offers
+  // up to Sem 8. Same full range as Dashboard/CGPA now, so the
+  // switcher — not the frozen year field — decides what's available.
+  const availableSems = [1, 2, 3, 4, 5, 6, 7, 8];
+  const currentSem = resolveSem(req, availableSems);
 
   let attendance = store.getAttendance(user.id);
   if (!attendance) {
@@ -384,7 +414,7 @@ app.get('/reminders', requireAuth, (req, res) => {
 // ---------------- CGPA ----------------
 app.get('/cgpa', requireAuth, (req, res) => {
   const user = req.session.user;
-  const currentSem = Math.min(8, Math.max(1, parseInt(req.query.sem, 10) || 1));
+  const currentSem = resolveSem(req, [1, 2, 3, 4, 5, 6, 7, 8]);
   const cgpa = store.getCgpa(user.id);
   const semesters = cgpa.semesters || {};
   const subjects = (semesters[currentSem] && semesters[currentSem].subjects) || [];

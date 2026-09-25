@@ -45,8 +45,8 @@
               <div class="lbl">Attendance<% if (currentSem) { %> (Sem <%= currentSem %>)<% } %></div>
             </div>
             <div class="stat-tile">
-              <div class="num"><%= currentSem && semSgpaVal !== null ? semSgpaVal : (overallCgpaVal || '—') %></div>
-              <div class="lbl"><%= currentSem && semSgpaVal !== null ? 'SGPA (Sem ' + currentSem + ')' : 'Overall CGPA' %></div>
+              <div class="num"><%= overallCgpaVal || '—' %></div>
+              <div class="lbl">Overall CGPA</div>
             </div>
             <div class="stat-tile">
               <div class="num"><%= reminders.length %></div>

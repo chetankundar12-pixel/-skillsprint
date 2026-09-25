@@ -1,16 +1,16 @@
 <%
-  // SkillSprint brand mark v2 — three ascending bars (progress / growth),
-  // not a hand-drawn letterform. Chosen specifically because it's built
-  // from plain rectangles, not a freehand curve, so it can't come out
-  // lopsided or rough — guaranteed clean at any size.
+  // SkillSprint brand mark v3 — back to a plain "S", but as real SVG
+  // text in the site's display font (Bricolage Grotesque) rather than a
+  // hand-drawn path. Letting the browser render the actual font glyph
+  // means it's guaranteed to look right, unlike a freehand curve.
   // Uses currentColor so it always matches .brand-mark's color:#fff.
   //
-  // Drop it inside the existing badge div in place of the old icon.
-  // Reminder: never write EJS delimiter characters inside a comment —
-  // see the note in partials/head.ejs.
+  // This is the ONE logo file every page includes, so changing it here
+  // changes it everywhere at once — sidebar, landing, onboarding, all
+  // of it in sync going forward.
 %>
-<svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-  <rect x="3"  y="13" width="4.5" height="8"  rx="1.6" fill="currentColor"/>
-  <rect x="9.75" y="8" width="4.5" height="13" rx="1.6" fill="currentColor"/>
-  <rect x="16.5" y="3" width="4.5" height="18" rx="1.6" fill="currentColor"/>
+<svg width="22" height="22" viewBox="0 0 22 22" xmlns="http://www.w3.org/2000/svg">
+  <text x="11" y="16.5" text-anchor="middle"
+        font-family="'Bricolage Grotesque','Inter',-apple-system,sans-serif"
+        font-weight="800" font-size="16" fill="currentColor">S</text>
 </svg>

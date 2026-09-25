@@ -151,6 +151,17 @@
         <div class="section-card">
           <div class="section-head">
             <h3>📖 Attendance History</h3>
+            <% if (rows && rows.length) { %>
+              <div style="display:flex; align-items:center; gap:8px;">
+                <span class="hint-text">Subject</span>
+                <select id="historySubjectFilter" class="field" style="padding:6px 10px; width:auto;">
+                  <option value="all">All subjects</option>
+                  <% rows.forEach(r => { %>
+                    <option value="<%= r.name %>"><%= r.name %></option>
+                  <% }) %>
+                </select>
+              </div>
+            <% } %>
             <button class="focus-toggle">🎯 Focus</button>
           </div>
           <p class="hint-text" style="margin-bottom:12px;">Every lecture you've marked, with the date, time, and what was covered — this is what you'd show a teacher.</p>
@@ -159,9 +170,9 @@
           <% } else { %>
             <table class="history-table">
               <thead><tr><th>Date</th><th>Time</th><th>Subject</th><th>Status</th><th>What was taught</th></tr></thead>
-              <tbody>
+              <tbody id="historyBody">
                 <% history.forEach(h => { %>
-                  <tr>
+                  <tr data-subject="<%= h.subject %>">
                     <td><%= h.date %></td>
                     <td><%= h.time %></td>
                     <td><%= h.subject %></td>
@@ -171,6 +182,7 @@
                 <% }) %>
               </tbody>
             </table>
+            <p id="historyEmptyFiltered" class="history-empty" style="display:none;">No lectures marked for this subject yet.</p>
           <% } %>
         </div>
       </div>
@@ -178,5 +190,28 @@
   </div>
   <script src="/js/main.js"></script>
   <script src="/js/focus.js"></script>
+  <script>
+    // History subject filter — starts on "All subjects", switching to a
+    // specific one shows just that subject's lectures. Pure client-side
+    // (no page reload) so it's quick to flip through live, e.g. when
+    // showing a teacher your attendance for their subject specifically.
+    (function () {
+      var select = document.getElementById('historySubjectFilter');
+      var body = document.getElementById('historyBody');
+      var emptyMsg = document.getElementById('historyEmptyFiltered');
+      if (!select || !body) return;
+
+      select.addEventListener('change', function () {
+        var chosen = select.value;
+        var visibleCount = 0;
+        Array.prototype.forEach.call(body.querySelectorAll('tr'), function (row) {
+          var show = chosen === 'all' || row.getAttribute('data-subject') === chosen;
+          row.style.display = show ? '' : 'none';
+          if (show) visibleCount++;
+        });
+        if (emptyMsg) emptyMsg.style.display = visibleCount === 0 ? '' : 'none';
+      });
+    })();
+  </script>
 </body>
 </html>

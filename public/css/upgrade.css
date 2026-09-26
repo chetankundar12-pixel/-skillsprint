@@ -455,3 +455,126 @@ select:focus-visible {
      squeezing every column down to nothing */
   .history-table { display: block; overflow-x: auto; white-space: nowrap; }
 }
+
+/* ---------- 14. Topbar user menu ------------------------------------
+   The "▾" next to the username was purely decorative before — nothing
+   opened it. This makes it a real dropdown with Edit Profile / Logout,
+   since Edit Profile needed somewhere to live. */
+.user-menu-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: none;
+  border: none;
+  color: var(--text);
+  font: inherit;
+  cursor: pointer;
+  padding: 4px 6px;
+  border-radius: 10px;
+}
+.user-menu-btn:hover { background: rgba(255, 255, 255, .04); }
+
+.topbar-user2 { position: relative; }
+.user-menu {
+  display: none;
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  min-width: 180px;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 8px;
+  box-shadow: var(--shadow-lg);
+  z-index: 60;
+}
+.user-menu.is-open { display: flex; flex-direction: column; gap: 2px; }
+.user-menu a {
+  padding: 9px 12px;
+  border-radius: 9px;
+  color: var(--text);
+  font-size: .86rem;
+  font-weight: 600;
+}
+.user-menu a:hover { background: rgba(255, 255, 255, .05); }
+
+/* ---------- 15. Card & tile consistency ------------------------------
+   .quick-link had a hover lift, .stat-tile had none at all — same
+   visual family, inconsistent behavior. Bringing stat-tile in line. */
+.stat-tile {
+  transition: transform .18s var(--ease), border-color .18s var(--ease);
+}
+.stat-tile:hover {
+  transform: translateY(-2px);
+  border-color: rgba(139, 92, 246, .3);
+}
+.stat-grid, .quick-links, .cgpa-grid, .note-grid, .simple-stat-grid {
+  gap: 14px;
+}
+
+/* ---------- 16. Empty states -----------------------------------------
+   Notes and Reminders both just showed one plain line of hint-text
+   when empty — functional, but easy to mistake for a loading state or
+   miss entirely. This gives empty lists an actual visual presence. */
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 6px;
+  padding: 38px 20px;
+  border: 1px dashed var(--border);
+  border-radius: 14px;
+  color: var(--muted);
+}
+.empty-state .es-icon {
+  font-size: 1.8rem;
+  opacity: .7;
+  margin-bottom: 4px;
+}
+.empty-state .es-title {
+  color: var(--text);
+  font-weight: 700;
+  font-size: .95rem;
+}
+.empty-state .es-sub {
+  font-size: .84rem;
+  max-width: 34ch;
+}
+
+/* ---------- 17. Table & data-row polish ------------------------------ */
+.history-table-wrap {
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  overflow-x: auto;
+}
+.history-table-wrap .history-table { border-radius: 0; }
+.history-table thead th {
+  background: rgba(255, 255, 255, .02);
+}
+.history-table tbody tr {
+  transition: background .15s var(--ease);
+}
+.history-table tbody tr:hover {
+  background: rgba(255, 255, 255, .025);
+}
+
+/* CGPA subject-entry rows were bare grid cells with no visual grouping —
+   giving each row a subtle card treatment makes a multi-row form read
+   as a list of entries rather than a loose grid of inputs. */
+.marks-row {
+  background: rgba(255, 255, 255, .015);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 6px 10px;
+  transition: border-color .15s var(--ease);
+}
+.marks-row:hover {
+  border-color: rgba(139, 92, 246, .3);
+}
+.marks-row button.remove {
+  transition: transform .15s var(--ease);
+}
+.marks-row button.remove:hover {
+  transform: scale(1.15);
+}

@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Edit Profile — SkillSprint</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="/css/style.css">
+  <link rel="stylesheet" href="/css/dashboard.css">
+  <link rel="stylesheet" href="/css/upgrade.css">
+</head>
+<body>
+  <div class="app-shell">
+    <%- include('partials/sidebar', { active: 'profile', user }) %>
+
+    <div class="main">
+      <%- include('partials/topbar', { user }) %>
+
+      <div class="dcontent">
+        <div class="section-card" style="max-width:640px;">
+          <div class="section-head">
+            <h3>Edit Profile</h3>
+          </div>
+
+          <% if (saved) { %>
+            <p style="background:rgba(34,197,94,.12); border:1px solid rgba(34,197,94,.35); color:var(--green); padding:10px 14px; border-radius:10px; font-size:.86rem; margin-bottom:18px;">
+              ✓ Saved — your changes are live now, no need to log out and back in.
+            </p>
+          <% } %>
+
+          <p class="hint-text" style="margin-bottom:18px;">
+            This is the one place you can update your college, year, or branch after signup —
+            useful once you've actually moved up a year, since that never updates on its own.
+          </p>
+
+          <form action="/profile" method="post">
+            <label class="field-label">Full name</label>
+            <div class="field">
+              <span>🙂</span>
+              <input type="text" name="fullName" value="<%= user.fullName || '' %>" required>
+            </div>
+
+            <label class="field-label">University</label>
+            <div class="field">
+              <span>🏛️</span>
+              <select id="university" name="university" required>
+                <% universities.forEach(u => { %>
+                  <option value="<%= u %>" <%= u === user.university ? 'selected' : '' %>><%= u %></option>
+                <% }) %>
+              </select>
+            </div>
+
+            <label class="field-label">College</label>
+            <div class="field">
+              <span>🏫</span>
+              <select id="college" name="college"></select>
+              <input type="text" id="collegeOther" name="collegeOther" placeholder="Enter your college name" style="display:none;" value="<%= user.college || '' %>" />
+            </div>
+
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:14px;">
+              <div>
+                <label class="field-label">Year</label>
+                <div class="field">
+                  <span>📆</span>
+                  <select id="year" name="year">
+                    <% years.forEach(y => { %><option value="<%= y %>" <%= y === user.year ? 'selected' : '' %>><%= y %></option><% }) %>
+                  </select>
+                </div>
+              </div>
+              <div>
+                <label class="field-label">Stream / Branch</label>
+                <div class="field">
+                  <span>💻</span>
+                  <select id="stream" name="stream">
+                    <% streams.forEach(s => { %><option value="<%= s %>" <%= s === user.stream ? 'selected' : '' %>><%= s %></option><% }) %>
+                  </select>
+                </div>
+              </div>
+            </div>
+
+            <p class="hint-text" style="margin-top:14px;">
+              Changing Year or Stream doesn't touch attendance or CGPA you've already entered —
+              you can always add subjects for a new semester from the Attendance page.
+            </p>
+
+            <button type="submit" class="btn btn-primary btn-block" style="margin-top:18px;">Save changes</button>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    window.__collegesByUniversity = <%- JSON.stringify(collegesByUniversity) %>;
+  </script>
+  <script src="/js/main.js"></script>
+  <script src="/js/upgrade.js"></script>
+  <script>
+    // Pre-select the student's current college once main.js has built
+    // the college dropdown for their university.
+    (function () {
+      var collegeSelect = document.getElementById('college');
+      if (!collegeSelect) return;
+      var currentCollege = <%- JSON.stringify(user.college || '') %>;
+      setTimeout(function () {
+        if (currentCollege && [...collegeSelect.options].some(o => o.value === currentCollege)) {
+          collegeSelect.value = currentCollege;
+        }
+      }, 0);
+    })();
+  </script>
+</body>
+</html>

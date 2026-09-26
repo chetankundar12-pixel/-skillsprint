@@ -107,4 +107,25 @@
       }
     });
   }
+
+  /* --- Topbar user menu (Edit Profile / Logout) ----------------------- */
+  var userMenuBtn = document.querySelector('.user-menu-btn');
+  var userMenu = document.getElementById('userMenu');
+  if (userMenuBtn && userMenu) {
+    var closeUserMenu = function () {
+      userMenu.classList.remove('is-open');
+      userMenuBtn.setAttribute('aria-expanded', 'false');
+    };
+    userMenuBtn.addEventListener('click', function (e) {
+      e.stopPropagation();
+      var isOpen = userMenu.classList.toggle('is-open');
+      userMenuBtn.setAttribute('aria-expanded', String(isOpen));
+    });
+    document.addEventListener('click', function (e) {
+      if (!e.target.closest('#userMenuTrigger')) closeUserMenu();
+    });
+    document.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape') closeUserMenu();
+    });
+  }
 })();

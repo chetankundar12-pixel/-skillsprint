@@ -177,6 +177,38 @@ app.get('/logout', (req, res) => {
   req.session.destroy(() => res.redirect('/'));
 });
 
+// ---------------- Edit Profile ----------------
+// Lets a student update college/year/stream after onboarding — until
+// now there was no way to do this at all once onboarded was true, which
+// is what caused the year field to be permanently frozen at whatever
+// was picked once (this is what blocked Community access for anyone
+// past Second Year, and forced the semester workarounds elsewhere).
+app.get('/profile', requireAuth, (req, res) => {
+  const user = req.session.user;
+  res.render('profile', {
+    user,
+    universities: universities.universities,
+    collegesByUniversity: universities.collegesByUniversity,
+    years: universities.years,
+    streams: universities.streams,
+    subjects: subjectsData,
+    saved: req.query.saved === '1'
+  });
+});
+
+app.post('/profile', requireAuth, (req, res) => {
+  const { fullName, university, college, collegeOther, year, stream } = req.body;
+  const finalCollege = (college || collegeOther || '').trim();
+  const updated = {
+    ...req.session.user,
+    fullName: (fullName || req.session.user.fullName || '').trim(),
+    university, college: finalCollege, year, stream
+  };
+  store.saveUser(updated);
+  req.session.user = updated;
+  res.redirect('/profile?saved=1');
+});
+
 // ---------------- Dashboard ----------------
 app.get('/dashboard', requireAuth, (req, res) => {
   const user = req.session.user;
@@ -469,6 +501,37 @@ io.on('connection', (socket) => {
     const message = { id: id(), name: user.fullName, text: text.trim(), ts: Date.now() };
     store.addMessage(roomKey, message);
     io.to(roomKey).emit('chat:message', message);
+  });
+});
+
+// ---------------- 404 + error handling ----------------
+// Must be registered AFTER every other route — Express checks them in
+// order, so anything that falls through to here matched no real route.
+app.use((req, res) => {
+  res.status(404).render('error', {
+    code: 404,
+    title: 'Page not found',
+    message: "That page doesn't exist — check the link, or head back to your dashboard.",
+    user: req.session.user || null
+  });
+});
+
+// 4-argument function is what makes Express treat this as an error
+// handler specifically, rather than a normal middleware — it only runs
+// when something earlier calls next(err) or throws. Without this,
+// Express's own default handler takes over and prints a raw stack
+// trace straight to the browser, file paths and all (this is exactly
+// what happened with the "availableSems is not defined" error earlier).
+app.use((err, req, res, next) => {
+  console.error(err); // full detail stays in your own terminal/logs
+  const isDev = process.env.NODE_ENV !== 'production';
+  res.status(500).render('error', {
+    code: 500,
+    title: 'Something went wrong',
+    message: isDev
+      ? err.message // only shown to you locally, never in production
+      : "That's on us, not you — try again in a moment.",
+    user: req.session.user || null
   });
 });
 

@@ -40,7 +40,7 @@
             <% } %>
             <button class="focus-toggle">🎯 Focus</button>
           </div>
-          <div class="stat-grid" style="grid-template-columns:repeat(4,1fr);">
+          <div class="stat-grid stat-grid-4">
             <div class="stat-tile">
               <div class="num" style="color: <%= overall && overall.pct >= 75 ? 'var(--green)' : 'var(--red)' %>;"><%= overall && overall.total > 0 ? overall.pct + '%' : '—' %></div>
               <div class="lbl">Attendance<% if (currentSem) { %> (Sem <%= currentSem %>)<% } %></div>
@@ -101,6 +101,7 @@
     </div>
   </div>
   <script src="/js/main.js"></script>
+  <script src="/js/upgrade.js"></script>
   <script src="/js/focus.js"></script>
 </body>
 </html>

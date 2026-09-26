@@ -381,3 +381,77 @@ select:focus-visible {
   height: 18px;
   flex-shrink: 0;
 }
+
+/* ---------- 13. Mobile app shell (sidebar, topbar, content) --------
+   dashboard.css's own mobile rule was just `.sidebar{ display:none }`
+   at 1100px — the sidebar vanished completely with no replacement, so
+   a student on a phone (or even a modest-width laptop window) had no
+   way at all to reach Attendance, CGPA, or anywhere else. This turns
+   the sidebar into a slide-in panel triggered by a hamburger button in
+   the topbar, instead of just deleting the only navigation on the page.
+*/
+.mobile-nav-toggle {
+  display: none;
+  background: rgba(255, 255, 255, .04);
+  border: 1px solid var(--border);
+  color: var(--text);
+  width: 42px;
+  height: 42px;
+  border-radius: 12px;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.mobile-nav-toggle svg { width: 20px; height: 20px; }
+
+.sidebar-backdrop {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, .55);
+  z-index: 199;
+}
+.sidebar-backdrop.is-open { display: block; }
+
+@media (max-width: 1100px) {
+  .app-shell { grid-template-columns: 1fr; }
+
+  .mobile-nav-toggle { display: inline-flex; }
+
+  .sidebar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    height: 100vh;
+    width: 260px;
+    max-width: 82vw;
+    z-index: 200;
+    transform: translateX(-100%);
+    transition: transform .25s var(--ease, ease);
+    overflow-y: auto;
+  }
+  .sidebar.is-open { transform: translateX(0); }
+
+  /* dcontent padding was fixed at 26px/30px regardless of screen size,
+     which eats a lot of a phone's already-narrow width */
+  .dcontent { padding: 18px 16px 48px; }
+  .topbar2 { padding: 14px 16px; gap: 12px; }
+  .topbar2 .tu-name { display: none; } /* name + chevron crowd a narrow topbar; avatar alone is enough */
+
+  .quick-links { grid-template-columns: repeat(2, 1fr); }
+  .note-grid { grid-template-columns: 1fr; }
+  .cgpa-grid { grid-template-columns: repeat(2, 1fr); }
+  .stat-grid { grid-template-columns: 1fr; }
+  .simple-stat-grid { grid-template-columns: repeat(2, 1fr); }
+}
+
+@media (max-width: 480px) {
+  .simple-stat-grid { grid-template-columns: 1fr 1fr; }
+  .page-banner { height: 120px; }
+  .page-banner-content { padding: 0 20px; }
+  .page-banner-content h1 { font-size: 1.2rem; }
+
+  /* history/data tables need to scroll sideways on a phone rather than
+     squeezing every column down to nothing */
+  .history-table { display: block; overflow-x: auto; white-space: nowrap; }
+}

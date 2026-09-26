@@ -73,4 +73,38 @@
       if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); poke(); }
     });
   }
+
+  /* --- App shell mobile sidebar ---------------------------------------
+     dashboard.css used to just hide .sidebar below 1100px with nothing
+     to replace it, so there was no way to navigate at all on a phone.
+     This is the hamburger-in-topbar version of the same pattern used
+     on the marketing site's nav-toggle, but for the app pages
+     (dashboard, attendance, cgpa, etc.) — separate elements, so it's
+     kept as its own block rather than merged with the one above. */
+  var sidebarToggle = document.querySelector('.mobile-nav-toggle');
+  var sidebar = document.getElementById('appSidebar');
+  var sidebarBackdrop = document.getElementById('sidebarBackdrop');
+  if (sidebarToggle && sidebar && sidebarBackdrop) {
+    var closeSidebar = function () {
+      sidebar.classList.remove('is-open');
+      sidebarBackdrop.classList.remove('is-open');
+      sidebarToggle.setAttribute('aria-expanded', 'false');
+    };
+    var openSidebar = function () {
+      sidebar.classList.add('is-open');
+      sidebarBackdrop.classList.add('is-open');
+      sidebarToggle.setAttribute('aria-expanded', 'true');
+    };
+    sidebarToggle.addEventListener('click', function () {
+      var isOpen = sidebar.classList.contains('is-open');
+      if (isOpen) closeSidebar(); else openSidebar();
+    });
+    sidebarBackdrop.addEventListener('click', closeSidebar);
+    document.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape' && sidebar.classList.contains('is-open')) {
+        closeSidebar();
+        sidebarToggle.focus();
+      }
+    });
+  }
 })();

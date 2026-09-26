@@ -1,0 +1,18 @@
+<%
+  // SkillSprint brand mark v4 — bigger "S" (in the display font, so it's
+  // guaranteed to render as a proper letterform, never a lopsided
+  // hand-drawn curve), plus a short motion stripe underneath to give it
+  // its own identity instead of reading as a plain letter in a box.
+  // Uses currentColor so it always matches .brand-mark's color:#fff.
+  //
+  // This is the ONE logo file every page includes (via
+  // partials/sidebar.ejs, which dashboard/attendance/cgpa/notes/
+  // reminders/progress/community all share) — editing this file changes
+  // the logo everywhere at once.
+%>
+<svg width="30" height="30" viewBox="0 0 26 26" xmlns="http://www.w3.org/2000/svg">
+  <text x="13" y="18.5" text-anchor="middle"
+        font-family="'Bricolage Grotesque','Inter',-apple-system,sans-serif"
+        font-weight="900" font-size="20" fill="currentColor">S</text>
+  <rect x="6" y="21.5" width="14" height="2.4" rx="1.2" fill="currentColor" opacity="0.55"/>
+</svg>

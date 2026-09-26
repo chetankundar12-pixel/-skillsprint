@@ -352,15 +352,13 @@ select:focus-visible {
 
 
 /* ---------- 11. Brand mark -------------------------------------------
-   The old mark was a bold letterform in a colored box — the most
-   generic placeholder shape for a logo. This is a custom monoline "S"
-   stroke instead (see partials/logo.ejs), so it reads as a made mark,
-   with the wordmark's tracking tightened to sit at the same visual
-   weight as the icon next to it. */
+   partials/logo.ejs renders an SVG (not plain text), so this controls
+   how much of the 46x46 badge it fills — sized up close to the edges
+   rather than sitting small in the middle. */
 .brand-mark svg {
   display: block;
-  width: 58%;
-  height: 58%;
+  width: 78%;
+  height: 78%;
 }
 .brand-name {
   letter-spacing: -.03em;
@@ -368,4 +366,18 @@ select:focus-visible {
 }
 .brand-tag {
   letter-spacing: .01em;
+}
+
+/* Nav icons replacing the old emoji — sized to sit inline with the
+   label text, same color as the text so they follow the active/hover
+   state automatically (no separate active-icon color needed). */
+.nav-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.nav-icon {
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
 }

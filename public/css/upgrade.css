@@ -287,19 +287,13 @@ select:focus-visible {
 .site-footer nav a:hover { color: var(--text); }
 
 
-/* ---------- 9. Landing hero photo -----------------------------------
-   style.css's .mascot-img rule applies a radial mask that fades a
-   CUTOUT ILLUSTRATION to transparent at the edges — meant to sit on
-   top of the gradient box behind it. duo.jpg is a real rectangular
-   photo, not a cutout, so that mask isn't right for it, and neither
-   is treating it as a small centered image: it should fill its frame
-   like a photo, the way the box was originally sized to expect.
-
-   The photo is pinned to fill .hero-photo edge-to-edge (position:
-   absolute; inset:0) rather than sized by width/height, so it always
-   covers the full frame regardless of the grid's computed height.
-   .mascot-wrap is forced to position:static so .hero-photo — not
-   mascot-wrap — is the box the photo fills. */
+/* ---------- 9. Landing hero illustration -----------------------------
+   Was a photo (duo.jpg), now partials/hero-illustration.ejs — an
+   original SVG since I can't verify licensing on any photo pulled from
+   the web for a live app. Same fill-the-frame approach as before: the
+   illustration wrapper is pinned edge-to-edge (position: absolute;
+   inset: 0) rather than sized by width/height, so it always covers the
+   full frame regardless of the grid's computed height. */
 .hero-photo {
   position: relative;
   border-radius: 24px;
@@ -308,24 +302,14 @@ select:focus-visible {
   min-height: 460px;
   margin-top: 32px;
 }
-.hero-photo .mascot-wrap {
-  position: static;
-  display: block;
-  min-height: 0;
-}
-.hero-photo .mascot-img {
+.hero-illustration-wrap {
   position: absolute;
   inset: 0;
+}
+.hero-illustration-wrap svg {
+  display: block;
   width: 100%;
   height: 100%;
-  max-width: none;
-  object-fit: cover;
-  mask-image: none;
-  -webkit-mask-image: none;
-  opacity: 1;
-  border-radius: 0;
-  box-shadow: none;
-  cursor: pointer;
 }
 @media (max-width: 768px) {
   .hero-photo { min-height: 340px; }
@@ -577,4 +561,116 @@ select:focus-visible {
 }
 .marks-row button.remove:hover {
   transform: scale(1.15);
+}
+
+
+/* ---------- 18. Photo-free banner & avatars ---------------------------
+   The banner's left side used to be a photo (320px wide, faded into the
+   gradient), so .banner-body only had 6px of left padding. With the
+   photo gone that text would sit hard against the edge, so the padding
+   is restored to match the right side. .banner-photo is also hidden as
+   a safety net in case an older copy of any page still includes the
+   partial. */
+.photo-banner .banner-photo { display: none; }
+.photo-banner .banner-body { padding: 30px 38px; }
+.photo-banner { min-height: 200px; }
+@media (max-width: 800px) {
+  .photo-banner .banner-body { padding: 22px; }
+}
+
+/* Topbar avatar is now the note emoji instead of a photo or initial */
+.avatar-emoji {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  font-size: 1.15rem;
+  line-height: 1;
+  background: rgba(139, 92, 246, .18);
+  box-shadow: 0 0 0 3px rgba(139, 92, 246, .25);
+}
+
+
+/* ---------- 19. Hero live example & auth panels -----------------------
+   No images anywhere. The hero's right side is a working attendance
+   example (buttons change the numbers live), and the login side panel
+   is a short checklist. */
+.hero-preview {
+  align-self: center;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 22px;
+  padding: 26px;
+  box-shadow: var(--shadow-lg);
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+.demo-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.demo-title { font-family: var(--font-display); font-weight: 700; font-size: 1.05rem; }
+.demo-chip {
+  font-size: .74rem; font-weight: 700; color: var(--cyan);
+  background: rgba(34, 211, 238, .1); border: 1px solid rgba(34, 211, 238, .3);
+  padding: 4px 12px; border-radius: 999px; white-space: nowrap;
+}
+.demo-figure { display: flex; align-items: baseline; gap: 14px; flex-wrap: wrap; }
+.demo-pct {
+  font-family: var(--font-display); font-weight: 800; font-size: 3.6rem; line-height: 1;
+  letter-spacing: -.03em; font-variant-numeric: tabular-nums; transition: color .2s var(--ease);
+}
+.demo-pct.is-ok { color: var(--green); }
+.demo-pct.is-low { color: var(--red); }
+.demo-count { color: var(--muted); font-size: .92rem; }
+
+.demo-bar { position: relative; height: 10px; border-radius: 999px; background: #1c2140; margin-top: 22px; }
+.demo-bar i {
+  display: block; height: 100%; border-radius: 999px;
+  background: linear-gradient(90deg, var(--green), var(--cyan));
+  transition: width .35s var(--ease);
+}
+.demo-bar i.is-low { background: linear-gradient(90deg, var(--red), var(--amber)); }
+.demo-mark {
+  position: absolute; top: -5px; bottom: -5px; width: 2px; background: var(--text); border-radius: 2px;
+}
+.demo-mark em {
+  position: absolute; top: -22px; left: 50%; transform: translateX(-50%);
+  font-style: normal; font-size: .72rem; font-weight: 700; color: var(--text);
+}
+.demo-msg { margin: 0; min-height: 3em; font-size: .95rem; color: var(--text); max-width: 46ch; }
+
+.demo-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.demo-btn {
+  border-radius: 14px; padding: 14px 16px; font-weight: 700; font-size: .95rem;
+  border: 1px solid var(--border); background: rgba(255, 255, 255, .03); color: var(--text);
+  transition: transform .15s var(--ease), border-color .15s var(--ease), background .15s var(--ease);
+}
+.demo-btn:hover { transform: translateY(-2px); }
+.demo-btn:active { transform: translateY(0) scale(.98); }
+.demo-present { border-color: rgba(34, 197, 94, .45); color: var(--green); }
+.demo-present:hover { background: rgba(34, 197, 94, .1); }
+.demo-absent { border-color: rgba(239, 68, 68, .45); color: var(--red); }
+.demo-absent:hover { background: rgba(239, 68, 68, .1); }
+
+.demo-foot {
+  display: flex; align-items: center; justify-content: space-between; gap: 14px;
+  border-top: 1px solid var(--border); padding-top: 14px;
+  font-size: .8rem; color: var(--muted-soft);
+}
+.demo-reset {
+  flex-shrink: 0; background: none; border: none; color: var(--muted);
+  font-size: .8rem; font-weight: 600; text-decoration: underline; padding: 4px;
+}
+.demo-reset:hover { color: var(--text); }
+
+.auth-points { list-style: none; margin: 28px 0 0; padding: 0; display: grid; gap: 14px; }
+.auth-points li { padding-left: 16px; border-left: 2px solid rgba(139, 92, 246, .55); }
+.auth-points b { display: block; font-size: .95rem; }
+.auth-points span { color: var(--muted); font-size: .86rem; }
+
+@media (max-width: 620px) {
+  .hero-preview { padding: 20px; }
+  .demo-pct { font-size: 3rem; }
+  .demo-foot { flex-direction: column; align-items: flex-start; }
 }

@@ -9,7 +9,7 @@
   <header class="site-header">
     <div class="container header-inner">
       <a href="/" class="brand">
-        <div class="brand-mark" aria-hidden="true"><%- include('partials/logo') %></div>
+        <div class="brand-mark" aria-hidden="true">S</div>
         <div>
           <div class="brand-name">Skill<span>Sprint</span></div>
           <div class="brand-tag">Smart Student Progress Tracker</div>
@@ -57,38 +57,34 @@
           </dl>
         </div>
 
-        <div class="hero-photo reveal reveal-2">
-          <div class="mascot-glow" aria-hidden="true"></div>
-          <span class="sparkle s1" aria-hidden="true"></span>
-          <span class="sparkle s2" aria-hidden="true"></span>
-          <span class="sparkle s3" aria-hidden="true"></span>
-          <span class="sparkle s4" aria-hidden="true"></span>
-          <div class="mascot-wrap">
-            <!-- login.ejs points at duo.jpg, this pointed at duo.png.
-                 <picture> means whichever one exists will load. -->
-            <picture>
-              <source srcset="/img/duo.png" type="image/png">
-              <img class="mascot-img" src="/img/duo.jpg"
-                   alt="Chetan and Aaditya, the students who built SkillSprint"
-                   width="560" height="560" tabindex="0">
-            </picture>
+        <aside class="hero-preview demo reveal reveal-2" aria-label="Interactive attendance example">
+          <div class="demo-head">
+            <span class="demo-title">Try it: Data Structures</span>
+            <span class="demo-chip">Live example</span>
           </div>
 
-          <div class="floating-card fc1">
-            <div class="fc-icon" style="background:rgba(34,197,94,.18); color:var(--green);" aria-hidden="true">✓</div>
-            <div>
-              <div class="fc-title">Attendance 92%</div>
-              <div class="fc-sub">Clear to sit for exams</div>
-            </div>
+          <div class="demo-figure">
+            <div class="demo-pct" id="demoPct">82%</div>
+            <div class="demo-count"><span id="demoAttended">18</span> of <span id="demoTotal">22</span> lectures attended</div>
           </div>
-          <div class="floating-card fc2">
-            <div class="fc-icon" style="background:rgba(139,92,246,.18); color:var(--purple);" aria-hidden="true">🎓</div>
-            <div>
-              <div class="fc-title">CGPA 8.7</div>
-              <div class="fc-sub">Sem 3 calculated</div>
-            </div>
+
+          <div class="demo-bar" role="img" aria-label="Attendance compared with the 75 percent rule">
+            <i id="demoFill" style="width:82%;"></i>
+            <span class="demo-mark" style="left:75%;"><em>75%</em></span>
           </div>
-        </div>
+
+          <p class="demo-msg" id="demoMsg" aria-live="polite"></p>
+
+          <div class="demo-actions">
+            <button type="button" class="demo-btn demo-present" id="demoPresent">Mark present</button>
+            <button type="button" class="demo-btn demo-absent" id="demoAbsent">Mark absent</button>
+          </div>
+
+          <div class="demo-foot">
+            <span>Press the buttons. The real Attendance page works the same way for every subject.</span>
+            <button type="button" class="demo-reset" id="demoReset">Start over</button>
+          </div>
+        </aside>
       </section>
 
       <section id="features" class="feature-grid" aria-label="What SkillSprint does">
@@ -149,7 +145,7 @@
     </main>
 
     <footer class="site-footer">
-      <div>© <%= new Date().getFullYear() %> SkillSprint — built by Chetan and Aaditya.</div>
+      <div>© <%= new Date().getFullYear() %> SkillSprint — made for students.</div>
       <nav aria-label="Footer">
         <a href="#features">Features</a>
         <a href="#about">About</a>
@@ -162,5 +158,45 @@
 
   <script src="/js/main.js"></script>
   <script src="/js/upgrade.js"></script>
+  <script>
+    // Live attendance example in the hero. Same maths the Attendance page uses:
+    // percentage = attended / total, and the 75% rule decides what to tell you.
+    (function () {
+      var START_A = 18, START_T = 22;
+      var a = START_A, t = START_T;
+      var pctEl = document.getElementById('demoPct');
+      var attEl = document.getElementById('demoAttended');
+      var totEl = document.getElementById('demoTotal');
+      var fillEl = document.getElementById('demoFill');
+      var msgEl = document.getElementById('demoMsg');
+      if (!pctEl || !fillEl || !msgEl) return;
+
+      function render() {
+        var pct = t ? (a / t) * 100 : 0;
+        var ok = pct >= 75;
+        pctEl.textContent = Math.round(pct) + '%';
+        pctEl.className = 'demo-pct ' + (ok ? 'is-ok' : 'is-low');
+        attEl.textContent = a;
+        totEl.textContent = t;
+        fillEl.style.width = Math.min(100, pct) + '%';
+        fillEl.className = ok ? '' : 'is-low';
+
+        if (ok) {
+          var spare = Math.floor((4 * a) / 3 - t + 1e-9);
+          msgEl.textContent = spare > 0
+            ? 'Safe. You can miss ' + spare + ' more lecture' + (spare === 1 ? '' : 's') + ' and still stay above 75%.'
+            : 'Right on the line. Miss one more and you drop below 75%.';
+        } else {
+          var need = 3 * t - 4 * a;
+          msgEl.textContent = 'Below 75%. Attend the next ' + need + ' lecture' + (need === 1 ? '' : 's') + ' in a row to get back to safe.';
+        }
+      }
+
+      document.getElementById('demoPresent').addEventListener('click', function () { a += 1; t += 1; render(); });
+      document.getElementById('demoAbsent').addEventListener('click', function () { t += 1; render(); });
+      document.getElementById('demoReset').addEventListener('click', function () { a = START_A; t = START_T; render(); });
+      render();
+    })();
+  </script>
 </body>
 </html>

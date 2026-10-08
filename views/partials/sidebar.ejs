@@ -5,13 +5,7 @@
   </div>
 
   <div class="sidebar-user">
-    <% if (user.fullName && user.fullName.split(' ')[0].toLowerCase() === 'chetan') { %>
-      <img class="avatar-photo" src="/img/chetan.jpg" alt="<%= user.fullName %>">
-    <% } else if (user.fullName && ['aaditya','aditiya'].includes(user.fullName.split(' ')[0].toLowerCase())) { %>
-      <img class="avatar-photo" src="/img/aaditya.jpg" alt="<%= user.fullName %>">
-    <% } else { %>
-      <div class="avatar"><%= (user.fullName || 'U').charAt(0).toUpperCase() %></div>
-    <% } %>
+    <div class="avatar"><%= (user.fullName || 'U').charAt(0).toUpperCase() %></div>
     <div>
       <div class="su-name"><%= user.fullName %></div>
       <div class="su-sub"><%= user.year %> · <%= user.stream %></div>

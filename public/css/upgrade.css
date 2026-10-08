@@ -674,3 +674,22 @@ select:focus-visible {
   .demo-pct { font-size: 3rem; }
   .demo-foot { flex-direction: column; align-items: flex-start; }
 }
+
+
+/* ---------- 20. Simple header nav (login, signup) ----------------------
+   The 860px rule in section 6 turns .site-nav into a hidden dropdown that
+   needs the hamburger button. Login and signup have just one button and no
+   hamburger, so on a phone that button vanished. These pages keep their
+   single button visible instead. */
+@media (max-width: 860px) {
+  .site-nav.site-nav-simple {
+    position: static;
+    display: flex;
+    flex-direction: row;
+    background: none;
+    border: none;
+    padding: 0;
+    box-shadow: none;
+  }
+  .site-nav.site-nav-simple .btn { width: auto; }
+}

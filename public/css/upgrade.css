@@ -481,6 +481,8 @@ select:focus-visible {
   font-weight: 600;
 }
 .user-menu a:hover { background: rgba(255, 255, 255, .05); }
+.user-menu a { display: flex; align-items: center; gap: 10px; }
+.user-menu .menu-icon { width: 16px; height: 16px; flex-shrink: 0; }
 
 /* ---------- 15. Card & tile consistency ------------------------------
    .quick-link had a hover lift, .stat-tile had none at all — same
@@ -578,19 +580,6 @@ select:focus-visible {
   .photo-banner .banner-body { padding: 22px; }
 }
 
-/* Topbar avatar is now the note emoji instead of a photo or initial */
-.avatar-emoji {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 38px;
-  height: 38px;
-  border-radius: 50%;
-  font-size: 1.15rem;
-  line-height: 1;
-  background: rgba(139, 92, 246, .18);
-  box-shadow: 0 0 0 3px rgba(139, 92, 246, .25);
-}
 
 
 /* ---------- 19. Hero live example & auth panels -----------------------

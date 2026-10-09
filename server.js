@@ -41,6 +41,7 @@ app.use(passport.session());
 const fs = require('fs');
 const ANNOUNCE_FILE = path.join(__dirname, 'data', 'announcements.json');
 const adminEmails = (process.env.ADMIN_EMAILS || '').toLowerCase().split(',').map(e => e.trim()).filter(Boolean);
+console.log('Owner emails:', adminEmails.length ? adminEmails.join(', ') : '(none - set ADMIN_EMAILS in .env)');
 function isAdminUser(u) { return !!(u && u.email && adminEmails.includes(String(u.email).toLowerCase())); }
 function readAnnouncements() {
   try { return JSON.parse(fs.readFileSync(ANNOUNCE_FILE, 'utf8')); } catch (e) { return []; }
@@ -65,7 +66,13 @@ app.use((req, res, next) => {
 function requireAdmin(req, res, next) {
   if (!req.session.user) return res.redirect('/login');
   if (isAdminUser(req.session.user)) return next();
-  res.status(403).send('Owner access only.');
+  const mine = req.session.user.email || '(no email on this account)';
+  res.status(403).type('text').send(
+    'Owner access only.\n\nYou are logged in as: ' + mine + '\n' +
+    (adminEmails.length
+      ? 'Owner emails set in .env: ' + adminEmails.join(', ') + '\n\nThey must match exactly. Log in with one of those emails.'
+      : 'ADMIN_EMAILS is empty. Create a file named .env (not .env.example) in the project root, add:  ADMIN_EMAILS=' + mine + '  then restart the server.')
+  );
 }
 
 passport.serializeUser((user, done) => done(null, user));
@@ -526,23 +533,54 @@ app.post('/admin/announce', requireAdmin, (req, res) => {
   writeAnnouncements(list.slice(0, 100));
   res.redirect('/admin?sent=1');
 });
+// File uploads for the study library (needs:  npm install multer)
+let multer = null;
+try { multer = require('multer'); } catch (e) { console.warn('multer is not installed - run "npm install multer" to enable library uploads.'); }
+const LIBRARY_DIR = path.join(__dirname, 'public', 'library');
+const ALLOWED_EXT = ['.pdf', '.doc', '.docx', '.ppt', '.pptx', '.xls', '.xlsx', '.txt', '.zip', '.jpg', '.jpeg', '.png'];
+let libraryUpload = null;
+if (multer) {
+  fs.mkdirSync(LIBRARY_DIR, { recursive: true });
+  libraryUpload = multer({
+    storage: multer.diskStorage({
+      destination: (req, file, cb) => cb(null, LIBRARY_DIR),
+      filename: (req, file, cb) => cb(null, id() + path.extname(file.originalname).toLowerCase())
+    }),
+    limits: { fileSize: 25 * 1024 * 1024, files: 10 },
+    fileFilter: (req, file, cb) => cb(null, ALLOWED_EXT.includes(path.extname(file.originalname).toLowerCase()))
+  }).array('files', 10);
+}
 app.post('/admin/resource', requireAdmin, (req, res) => {
-  const title = String(req.body.title || '').trim().slice(0, 100);
-  const url = String(req.body.url || '').trim();
-  const sem = Number(req.body.sem);
-  if (!title || !/^https?:\/\//i.test(url) || !(sem >= 1 && sem <= 8)) return res.redirect('/admin?bad=1');
-  const list = readResources();
-  list.push({
-    id: id(), title, url,
-    scheme: SCHEMES.includes(req.body.scheme) ? req.body.scheme : SCHEMES[0],
-    type: RES_TYPES.includes(req.body.type) ? req.body.type : 'Notes',
-    sem, subject: String(req.body.subject || '').trim().slice(0, 80)
+  if (!libraryUpload) return res.status(500).type('text').send('File upload needs one extra package. Stop the server, run:  npm install multer  and start it again.');
+  libraryUpload(req, res, err => {
+    const files = (req.files || []);
+    const discard = () => files.forEach(f => fs.unlink(f.path, () => {}));
+    const sem = Number(req.body.sem);
+    if (err || !files.length || !(sem >= 1 && sem <= 8)) { discard(); return res.redirect('/admin?bad=1'); }
+    const title = String(req.body.title || '').trim().slice(0, 100);
+    const list = readResources();
+    files.forEach(f => {
+      const base = path.basename(f.originalname, path.extname(f.originalname)).slice(0, 100);
+      list.push({
+        id: id(),
+        title: files.length === 1 && title ? title : (title ? title + ' - ' + base : base),
+        url: '/library/' + f.filename,
+        file: f.filename,
+        ext: path.extname(f.filename).slice(1).toUpperCase(),
+        scheme: SCHEMES.includes(req.body.scheme) ? req.body.scheme : SCHEMES[0],
+        type: RES_TYPES.includes(req.body.type) ? req.body.type : 'Notes',
+        sem, subject: String(req.body.subject || '').trim().slice(0, 80)
+      });
+    });
+    writeResources(list);
+    res.redirect('/admin?added=1');
   });
-  writeResources(list);
-  res.redirect('/admin?added=1');
 });
 app.post('/admin/resource/delete', requireAdmin, (req, res) => {
-  writeResources(readResources().filter(r => r.id !== req.body.resourceId));
+  const list = readResources();
+  const hit = list.find(r => r.id === req.body.resourceId);
+  if (hit && hit.file) fs.unlink(path.join(LIBRARY_DIR, path.basename(hit.file)), () => {});
+  writeResources(list.filter(r => r.id !== req.body.resourceId));
   res.redirect('/admin');
 });
 app.post('/admin/announce/delete', requireAdmin, (req, res) => {

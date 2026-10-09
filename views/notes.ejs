@@ -50,9 +50,10 @@
                 <% group.forEach(r => { %>
                   <a class="lib-card" href="<%= r.url %>" target="_blank" rel="noopener noreferrer">
                     <span class="lib-type lib-<%= r.type.toLowerCase() %>"><%= r.type %></span>
+                    <% if (r.ext) { %><span class="lib-ext"><%= r.ext %></span><% } %>
                     <b><%= r.title %></b>
                     <% if (r.subject) { %><span class="lib-sub"><%= r.subject %></span><% } %>
-                    <span class="lib-open">Open
+                    <span class="lib-open"><%= r.file && r.ext !== 'PDF' ? 'Download' : 'Open' %>
                       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 17 17 7"/><path d="M8 7h9v9"/></svg>
                     </span>
                   </a>

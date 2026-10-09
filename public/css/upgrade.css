@@ -786,3 +786,15 @@ select option, select optgroup { background: #10142a; color: #fff; }
 .lib-notes { background: rgba(34,211,238,.14); color: #67e8f9; }
 .lib-open { display: inline-flex; align-items: center; gap: 5px; margin-top: 4px; color: #a78bfa; font-size: .82rem; font-weight: 600; }
 .lib-open svg { width: 14px; height: 14px; }
+
+
+/* ---- 25. File upload field ---- */
+.file-drop { grid-column: 1 / -1; display: flex; flex-direction: column; gap: 8px; padding: 16px; border: 1.5px dashed rgba(139,92,246,.45); border-radius: 14px; background: rgba(139,92,246,.06); }
+.file-drop input[type=file] { color: var(--muted); font-size: .88rem; }
+.file-drop input[type=file]::file-selector-button {
+  margin-right: 12px; padding: 8px 16px; border: 0; border-radius: 10px; cursor: pointer;
+  background: linear-gradient(135deg, #8b5cf6, #3b82f6); color: #fff; font-weight: 600; font-family: inherit;
+}
+.file-hint { font-size: .78rem; color: var(--muted); }
+.lib-card { position: relative; }
+.lib-ext { position: absolute; top: 12px; right: 12px; font-size: .68rem; font-weight: 700; letter-spacing: .05em; color: var(--muted); }

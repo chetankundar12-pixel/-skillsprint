@@ -60,10 +60,10 @@
 
         <div class="section-card">
           <div class="section-head"><h3>Add to Study Library</h3></div>
-          <p class="hint-text">Paste a Google Drive link (folder or file). Make sure the link is set to "Anyone with the link can view".</p>
+          <p class="hint-text">Upload PDFs, Word, PowerPoint or images (up to 25 MB each, 10 at a time). They appear straight away for students.</p>
           <% if (added) { %><div class="notice">Added. Students will see it in Notes &amp; Resources.</div><% } %>
-          <% if (bad) { %><div class="notice warn">Please give a title, a link starting with http, and pick a semester.</div><% } %>
-          <form method="post" action="/admin/resource" class="admin-form">
+          <% if (bad) { %><div class="notice warn">Please choose at least one file (PDF, DOC, PPT, XLS, image or ZIP, max 25 MB) and a semester.</div><% } %>
+          <form method="post" action="/admin/resource" enctype="multipart/form-data" class="admin-form">
             <div>
               <label class="field-label">Scheme</label>
               <div class="field"><select name="scheme"><% schemes.forEach(sc => { %><option value="<%= sc %>"><%= sc %></option><% }) %></select></div>
@@ -81,12 +81,13 @@
               <div class="field"><input type="text" name="subject" maxlength="80" placeholder="e.g. Engineering Mathematics I"></div>
             </div>
             <div>
-              <label class="field-label">Title</label>
-              <div class="field"><input type="text" name="title" maxlength="100" placeholder="e.g. Sem 1 Syllabus PDF" required></div>
+              <label class="field-label">Title (optional)</label>
+              <div class="field"><input type="text" name="title" maxlength="100" placeholder="Leave empty to use the file name"></div>
             </div>
-            <div>
-              <label class="field-label">Drive link</label>
-              <div class="field"><input type="url" name="url" placeholder="https://drive.google.com/..." required></div>
+            <div class="file-drop">
+              <label class="field-label" for="libFiles">Files</label>
+              <input type="file" id="libFiles" name="files" multiple required accept=".pdf,.doc,.docx,.ppt,.pptx,.xls,.xlsx,.txt,.zip,.jpg,.jpeg,.png">
+              <span class="file-hint" id="libFilesHint">No file chosen</span>
             </div>
             <button type="submit" class="btn btn-primary">Add to library</button>
           </form>
@@ -98,7 +99,7 @@
                   <div>
                     <b><%= r.title %></b>
                     <em><%= r.scheme %> · Sem <%= r.sem %> · <%= r.type %><%= r.subject ? ' · ' + r.subject : '' %></em>
-                    <span><a href="<%= r.url %>" target="_blank" rel="noopener noreferrer">Open link</a></span>
+                    <span><a href="<%= r.url %>" target="_blank" rel="noopener noreferrer"><%= r.file ? 'View file' : 'Open link' %></a></span>
                   </div>
                   <form method="post" action="/admin/resource/delete">
                     <input type="hidden" name="resourceId" value="<%= r.id %>">
@@ -136,6 +137,8 @@
     </div>
   </div>
   <script>
+    var lf = document.getElementById('libFiles'), lh = document.getElementById('libFilesHint');
+    if (lf) lf.addEventListener('change', function () { lh.textContent = lf.files.length ? lf.files.length + ' file(s) selected' : 'No file chosen'; });
     var aud = document.getElementById('audSel'), yw = document.getElementById('yearWrap');
     aud.addEventListener('change', function () { yw.style.display = aud.value === 'year' ? 'block' : 'none'; });
   </script>

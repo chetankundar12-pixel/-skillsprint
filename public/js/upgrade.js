@@ -128,4 +128,64 @@
       if (e.key === 'Escape') closeUserMenu();
     });
   }
+
+  /* --- Notification bell ---------------------------------------------
+     Loads pending reminders from /api/notifications, shows a count badge,
+     and opens a dropdown on click. */
+  var notifBtn = document.getElementById('notifBtn');
+  var notifPanel = document.getElementById('notifPanel');
+  if (notifBtn && notifPanel) {
+    var notifList = document.getElementById('notifList');
+    var notifBadge = document.getElementById('notifBadge');
+    var esc = function (v) {
+      return String(v).replace(/[&<>"']/g, function (c) {
+        return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+      });
+    };
+    var labels = { announce: 'Announcement', overdue: 'Overdue', today: 'Due today', upcoming: 'Upcoming', none: 'No due date' };
+    var loadNotifs = function () {
+      fetch('/api/notifications', { credentials: 'same-origin', headers: { Accept: 'application/json' } })
+        .then(function (r) { return r.json(); })
+        .then(function (d) {
+          var seen = [];
+          try { seen = JSON.parse(localStorage.getItem('ss_seen_announce') || '[]'); } catch (e) {}
+          var unseen = d.items.filter(function (n) { return n.type === 'announcement' && seen.indexOf(n.id) === -1; }).length;
+          var total = unseen + d.items.filter(function (n) { return n.type !== 'announcement'; }).length;
+          window.__ssAnnounceIds = d.items.filter(function (n) { return n.type === 'announcement'; }).map(function (n) { return n.id; });
+          notifBadge.hidden = !total;
+          notifBadge.textContent = total > 9 ? '9+' : total;
+          if (!d.items.length) {
+            notifList.innerHTML = '<li class="notif-empty">You\u2019re all caught up.</li>';
+            return;
+          }
+          notifList.innerHTML = d.items.map(function (n) {
+            return '<li><a href="' + (n.type === 'announcement' ? '#' : '/reminders') + '" class="notif-item is-' + n.state + '">' +
+              '<span class="notif-dot" aria-hidden="true"></span><span class="notif-text">' +
+              '<b>' + esc(n.subject) + '</b>' + (n.task ? '<span>' + esc(n.task) + '</span>' : '') +
+              '<em>' + labels[n.state] + (n.when ? ' \u00b7 ' + esc(n.when) : '') + (n.dueDate ? ' \u00b7 ' + esc(n.dueDate) : '') + '</em></span></a></li>';
+          }).join('');
+        })
+        .catch(function () { notifList.innerHTML = '<li class="notif-empty">Couldn\u2019t load notifications.</li>'; });
+    };
+    var closeNotifs = function () {
+      notifPanel.classList.remove('is-open');
+      notifBtn.setAttribute('aria-expanded', 'false');
+    };
+    notifBtn.addEventListener('click', function (e) {
+      e.stopPropagation();
+      var open = notifPanel.classList.toggle('is-open');
+      notifBtn.setAttribute('aria-expanded', String(open));
+      if (open) {
+        loadNotifs();
+        // opening the bell marks announcements as seen so the badge clears
+        try { localStorage.setItem('ss_seen_announce', JSON.stringify((window.__ssAnnounceIds || []).slice(0, 50))); } catch (err) {}
+        setTimeout(function () { notifBadge.hidden = true; }, 400);
+      }
+    });
+    document.addEventListener('click', function (e) {
+      if (!e.target.closest('#notifWrap')) closeNotifs();
+    });
+    document.addEventListener('keydown', function (e) { if (e.key === 'Escape') closeNotifs(); });
+    loadNotifs();
+  }
 })();

@@ -120,7 +120,15 @@
 
         <div class="section-card">
           <div class="section-head">
-            <h3>Mark Today's Lecture</h3>
+            <div>
+              <h3>Mark Today's Lecture</h3>
+              <div class="live-clock" aria-live="off">
+                <span class="live-dot" aria-hidden="true"></span>
+                <span id="liveDate"><%= liveDate %></span>
+                <span class="live-sep">·</span>
+                <strong id="liveTime"><%= liveTime %></strong>
+              </div>
+            </div>
             <button class="focus-toggle">🎯 Focus</button>
           </div>
           <table class="attend-table">
@@ -212,6 +220,19 @@
         });
         if (emptyMsg) emptyMsg.style.display = visibleCount === 0 ? '' : 'none';
       });
+    })();
+  </script>
+  <script>
+    (function () {
+      var tz = '<%= tz %>';
+      var d = document.getElementById('liveDate'), t = document.getElementById('liveTime');
+      if (!d || !t) return;
+      function tick() {
+        var n = new Date();
+        d.textContent = n.toLocaleDateString('en-IN', { timeZone: tz, weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+        t.textContent = n.toLocaleTimeString('en-IN', { timeZone: tz, hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true }).toUpperCase();
+      }
+      tick(); setInterval(tick, 1000);
     })();
   </script>
 </body>

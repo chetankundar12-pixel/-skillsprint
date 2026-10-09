@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Owner Panel — SkillSprint</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="/css/style.css">
+  <link rel="stylesheet" href="/css/dashboard.css">
+  <link rel="stylesheet" href="/css/upgrade.css">
+</head>
+<body>
+  <div class="app-shell">
+    <%- include('partials/sidebar', { active: 'admin', user }) %>
+    <div class="main">
+      <%- include('partials/topbar', { user }) %>
+      <div class="dcontent">
+        <div class="photo-banner reveal">
+          <div class="banner-body">
+            <h1><span class="name-accent">Owner Panel</span></h1>
+            <p class="banner-desc">Send a notification. It shows up in the bell of every student it is meant for.</p>
+          </div>
+        </div>
+
+        <div class="section-card">
+          <div class="section-head"><h3>New notification</h3></div>
+          <% if (sent) { %><div class="notice">Sent. Students will see it in their bell.</div><% } %>
+          <form method="post" action="/admin/announce" class="admin-form">
+            <div>
+              <label class="field-label">Title</label>
+              <div class="field"><input type="text" name="title" maxlength="80" placeholder="e.g. Unit test on Monday" required></div>
+            </div>
+            <div>
+              <label class="field-label">Message (optional)</label>
+              <div class="field"><input type="text" name="message" maxlength="400" placeholder="A short detail students should know"></div>
+            </div>
+            <div>
+              <label class="field-label">Send to</label>
+              <div class="field">
+                <select name="audience" id="audSel">
+                  <option value="all">All students</option>
+                  <option value="year">One year only</option>
+                </select>
+              </div>
+            </div>
+            <div id="yearWrap" style="display:none;">
+              <label class="field-label">Year</label>
+              <div class="field">
+                <select name="year"><% years.forEach(y => { %><option value="<%= y %>"><%= y %></option><% }) %></select>
+              </div>
+            </div>
+            <button type="submit" class="btn btn-primary">Send notification</button>
+          </form>
+        </div>
+
+        <div class="section-card">
+          <div class="section-head"><h3>Sent notifications</h3></div>
+          <% if (!announcements.length) { %>
+            <p class="hint-text">Nothing sent yet.</p>
+          <% } else { %>
+            <ul class="admin-list">
+              <% announcements.forEach(n => { %>
+                <li>
+                  <div>
+                    <b><%= n.title %></b>
+                    <% if (n.message) { %><span><%= n.message %></span><% } %>
+                    <em><%= n.createdLabel %> · <%= n.audience === 'year' ? n.year : 'All students' %></em>
+                  </div>
+                  <form method="post" action="/admin/announce/delete">
+                    <input type="hidden" name="announceId" value="<%= n.id %>">
+                    <button type="submit" class="btn btn-outline">Delete</button>
+                  </form>
+                </li>
+              <% }) %>
+            </ul>
+          <% } %>
+        </div>
+      </div>
+    </div>
+  </div>
+  <script>
+    var aud = document.getElementById('audSel'), yw = document.getElementById('yearWrap');
+    aud.addEventListener('change', function () { yw.style.display = aud.value === 'year' ? 'block' : 'none'; });
+  </script>
+  <script src="/js/main.js"></script>
+  <script src="/js/upgrade.js"></script>
+</body>
+</html>

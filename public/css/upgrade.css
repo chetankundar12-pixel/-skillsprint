@@ -159,7 +159,7 @@ select:focus-visible {
 .quick-link:hover { transform: translateY(-3px); border-color: rgba(139, 92, 246, .45); }
 
 /* Empty states read as guidance, not as a shrug */
-.hint-text {
+p.hint-text {
   border-left: 2px solid rgba(139, 92, 246, .5);
   padding-left: 14px;
   color: var(--muted);
@@ -481,8 +481,6 @@ select:focus-visible {
   font-weight: 600;
 }
 .user-menu a:hover { background: rgba(255, 255, 255, .05); }
-.user-menu a { display: flex; align-items: center; gap: 10px; }
-.user-menu .menu-icon { width: 16px; height: 16px; flex-shrink: 0; }
 
 /* ---------- 15. Card & tile consistency ------------------------------
    .quick-link had a hover lift, .stat-tile had none at all — same
@@ -682,3 +680,83 @@ select:focus-visible {
   }
   .site-nav.site-nav-simple .btn { width: auto; }
 }
+
+
+/* ---- 21. Round-two polish ---- */
+/* Dropdown text: white on dark, native list dark too */
+select { color: #fff; color-scheme: dark; }
+select option, select optgroup { background: #10142a; color: #fff; }
+
+/* Four dashboard tiles in one row */
+.stat-grid-4 { grid-template-columns: repeat(4, 1fr); }
+@media (max-width: 980px) { .stat-grid-4 { grid-template-columns: repeat(2, 1fr) !important; } }
+@media (max-width: 520px) { .stat-grid-4 { grid-template-columns: 1fr 1fr !important; } }
+
+/* Profile menu with SVG icons */
+.user-menu a { display: flex; align-items: center; gap: 10px; }
+.menu-icon { width: 17px; height: 17px; flex: none; opacity: .85; }
+.user-menu a:hover .menu-icon { opacity: 1; }
+.menu-logout:hover { color: #fca5a5; }
+
+/* Live date and time on attendance */
+.live-clock {
+  display: inline-flex; align-items: center; gap: 8px; flex-wrap: wrap;
+  margin-top: 6px; padding: 5px 12px; border-radius: 999px;
+  background: rgba(139, 92, 246, .12); border: 1px solid rgba(139, 92, 246, .3);
+  font-size: .85rem; color: var(--muted);
+}
+.live-clock strong { color: #fff; font-variant-numeric: tabular-nums; letter-spacing: .02em; }
+.live-sep { opacity: .5; }
+.live-dot { width: 8px; height: 8px; border-radius: 50%; background: #22c55e; box-shadow: 0 0 0 0 rgba(34,197,94,.6); animation: livePulse 1.8s infinite; }
+@keyframes livePulse { 70% { box-shadow: 0 0 0 7px rgba(34,197,94,0); } 100% { box-shadow: 0 0 0 0 rgba(34,197,94,0); } }
+@media (prefers-reduced-motion: reduce) { .live-dot { animation: none; } }
+
+
+/* ---- 22. Notification bell ---- */
+.notif { position: relative; }
+.notif-btn {
+  position: relative; width: 42px; height: 42px; display: grid; place-items: center;
+  border-radius: 12px; border: 1px solid var(--border); background: rgba(255,255,255,.04);
+  color: #fff; cursor: pointer; transition: background .2s, transform .2s;
+}
+.notif-btn:hover { background: rgba(255,255,255,.09); }
+.notif-btn svg { width: 19px; height: 19px; }
+.notif-badge {
+  position: absolute; top: -5px; right: -5px; min-width: 18px; height: 18px; padding: 0 5px;
+  border-radius: 999px; background: #ef4444; color: #fff; font-size: .68rem; font-weight: 700;
+  display: grid; place-items: center; border: 2px solid #0b1020;
+}
+.notif-badge[hidden] { display: none; }
+.notif-panel {
+  display: none; position: absolute; top: calc(100% + 10px); right: 0; width: 320px; max-width: calc(100vw - 32px);
+  background: var(--panel, #10142a); border: 1px solid var(--border); border-radius: 14px;
+  box-shadow: var(--shadow-lg); z-index: 70; overflow: hidden;
+}
+.notif-panel.is-open { display: block; }
+.notif-head { display: flex; justify-content: space-between; align-items: center; padding: 12px 14px; border-bottom: 1px solid var(--border); font-size: .9rem; }
+.notif-head a { font-size: .78rem; color: #a78bfa; }
+.notif-list { list-style: none; margin: 0; padding: 6px; max-height: 340px; overflow-y: auto; }
+.notif-item { display: flex; gap: 10px; padding: 10px; border-radius: 10px; color: var(--text); }
+.notif-item:hover { background: rgba(255,255,255,.05); }
+.notif-dot { width: 8px; height: 8px; border-radius: 50%; margin-top: 6px; flex: none; background: #8b5cf6; }
+.notif-item.is-overdue .notif-dot { background: #ef4444; }
+.notif-item.is-today .notif-dot { background: #f59e0b; }
+.notif-text { display: flex; flex-direction: column; gap: 2px; min-width: 0; font-size: .84rem; }
+.notif-text span { color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.notif-text em { font-style: normal; font-size: .74rem; color: var(--muted); }
+.notif-item.is-overdue em { color: #fca5a5; }
+.notif-item.is-today em { color: #fcd34d; }
+.notif-empty { padding: 22px 12px; text-align: center; color: var(--muted); font-size: .85rem; }
+
+
+/* ---- 23. Owner panel + announcements ---- */
+.admin-form { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; align-items: end; }
+.admin-form .btn { grid-column: 1 / -1; justify-self: start; }
+.admin-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 10px; }
+.admin-list li { display: flex; justify-content: space-between; gap: 14px; align-items: center; padding: 12px 14px; border: 1px solid var(--border); border-radius: 12px; background: rgba(255,255,255,.03); }
+.admin-list li div { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+.admin-list li span { color: var(--muted); font-size: .86rem; }
+.admin-list li em { font-style: normal; color: var(--muted); font-size: .76rem; }
+@media (max-width: 700px) { .admin-form { grid-template-columns: 1fr; } }
+.notif-item.is-announce .notif-dot { background: #22d3ee; }
+.notif-item.is-announce em { color: #67e8f9; }

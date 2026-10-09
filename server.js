@@ -36,10 +36,56 @@ app.use(sessionMiddleware);
 app.use(passport.initialize());
 app.use(passport.session());
 
+// ---------------- Owner / announcements ----------------
+// Owner = anyone whose login email is listed in ADMIN_EMAILS (comma separated) in .env
+const fs = require('fs');
+const ANNOUNCE_FILE = path.join(__dirname, 'data', 'announcements.json');
+const adminEmails = (process.env.ADMIN_EMAILS || '').toLowerCase().split(',').map(e => e.trim()).filter(Boolean);
+function isAdminUser(u) { return !!(u && u.email && adminEmails.includes(String(u.email).toLowerCase())); }
+function readAnnouncements() {
+  try { return JSON.parse(fs.readFileSync(ANNOUNCE_FILE, 'utf8')); } catch (e) { return []; }
+}
+function writeAnnouncements(list) {
+  try { fs.writeFileSync(ANNOUNCE_FILE, JSON.stringify(list, null, 2)); } catch (e) { console.error('Could not save announcements', e.message); }
+}
+app.use((req, res, next) => {
+  res.locals.isAdmin = isAdminUser(req.session && req.session.user);
+  next();
+});
+function requireAdmin(req, res, next) {
+  if (!req.session.user) return res.redirect('/login');
+  if (isAdminUser(req.session.user)) return next();
+  res.status(403).send('Owner access only.');
+}
+
 passport.serializeUser((user, done) => done(null, user));
 passport.deserializeUser((obj, done) => done(null, obj));
 
 function id() { return crypto.randomBytes(8).toString('hex'); }
+
+// ---------------- Time zone ----------------
+// A hosted server (Render and similar) keeps its clock in UTC, 5.5 hours
+// behind India. Reading the date/time straight off the server clock is what
+// made attendance dates look random (and a lecture marked after 6:30 PM land
+// on the wrong day). Everything date-related now goes through this zone.
+// Override with APP_TIMEZONE in .env if you ever need a different one.
+const APP_TZ = process.env.APP_TIMEZONE || 'Asia/Kolkata';
+
+// Year / month (1-12) / day / hour / minute of a moment, as seen in APP_TZ.
+function tzParts(date) {
+  const out = {};
+  new Intl.DateTimeFormat('en-GB', {
+    timeZone: APP_TZ, year: 'numeric', month: 'numeric', day: 'numeric',
+    hour: 'numeric', minute: 'numeric', second: 'numeric', hourCycle: 'h23'
+  }).formatToParts(date).forEach(p => { if (p.type !== 'literal') out[p.type] = Number(p.value); });
+  return out;
+}
+function fmtDate(date) {
+  return date.toLocaleDateString('en-IN', { timeZone: APP_TZ, weekday: 'short', day: '2-digit', month: 'short', year: 'numeric' });
+}
+function fmtTime(date) {
+  return date.toLocaleTimeString('en-IN', { timeZone: APP_TZ, hour: '2-digit', minute: '2-digit', hour12: true }).toUpperCase();
+}
 
 function requireAuth(req, res, next) {
   if (req.session.user) return next();
@@ -330,35 +376,44 @@ app.get('/attendance', requireAuth, (req, res) => {
 
   const history = [];
   visibleEntries.forEach(([name, s]) => {
-    (s.history || []).forEach(h => history.push({ subject: name, ...h }));
+    (s.history || []).forEach(h => {
+      const ts = new Date(h.timestamp);
+      // Older entries were saved with the server's UTC clock, but each one also
+      // stored an exact timestamp, so the right India date/time can be rebuilt.
+      const shown = isNaN(ts) ? {} : { date: fmtDate(ts), time: fmtTime(ts) };
+      history.push({ subject: name, ...h, ...shown });
+    });
   });
   history.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
 
-  // Build this month's calendar, marking each day present/absent/none from real history
-  const now = new Date();
-  const year = now.getFullYear(), month = now.getMonth();
-  const firstDay = new Date(year, month, 1);
-  const daysInMonth = new Date(year, month + 1, 0).getDate();
-  const startOffset = (firstDay.getDay() + 6) % 7; // make Monday index 0
-  const dayStatus = {}; // '1'-'31' -> 'present' | 'absent'
+  // Build this month's calendar (in APP_TZ), marking each day present/absent/none from real history
+  const nowDate = new Date();
+  const today = tzParts(nowDate);
+  const year = today.year, month = today.month - 1;
+  const daysInMonth = new Date(Date.UTC(year, month + 1, 0)).getUTCDate();
+  const startOffset = (new Date(Date.UTC(year, month, 1)).getUTCDay() + 6) % 7; // Monday = 0
+  const dayStatus = {}; // 1-31 -> 'present' | 'absent'
   history.forEach(h => {
-    const d = new Date(h.timestamp);
-    if (d.getFullYear() === year && d.getMonth() === month) {
-      const day = d.getDate();
+    const ts = new Date(h.timestamp);
+    if (isNaN(ts)) return;
+    const p = tzParts(ts);
+    if (p.year === year && p.month - 1 === month) {
       // present wins if mixed that day
-      if (h.status === 'Present') dayStatus[day] = 'present';
-      else if (!dayStatus[day]) dayStatus[day] = 'absent';
+      if (h.status === 'Present') dayStatus[p.day] = 'present';
+      else if (!dayStatus[p.day]) dayStatus[p.day] = 'absent';
     }
   });
   const calendarDays = [];
   for (let i = 0; i < startOffset; i++) calendarDays.push(null);
   for (let d = 1; d <= daysInMonth; d++) calendarDays.push(d);
-  const monthLabel = now.toLocaleDateString('en-IN', { month: 'long', year: 'numeric' });
-  const todayDate = now.getDate();
+  const monthLabel = new Date(Date.UTC(year, month, 15)).toLocaleDateString('en-IN', { month: 'long', year: 'numeric', timeZone: 'UTC' });
+  const todayDate = today.day;
+  const liveDate = nowDate.toLocaleDateString('en-IN', { timeZone: APP_TZ, weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+  const liveTime = nowDate.toLocaleTimeString('en-IN', { timeZone: APP_TZ, hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true }).toUpperCase();
 
   res.render('attendance', {
     user, rows, overall, history, calendarDays, monthLabel, todayDate, dayStatus,
-    currentSem, availableSems
+    currentSem, availableSems, liveDate, liveTime, tz: APP_TZ
   });
 });
 
@@ -375,8 +430,8 @@ app.post('/attendance/mark', requireAuth, (req, res) => {
   const now = new Date();
   attendance.subjects[subject].history.push({
     timestamp: now.toISOString(),
-    date: now.toLocaleDateString('en-IN'),
-    time: now.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' }),
+    date: fmtDate(now),
+    time: fmtTime(now),
     status: action === 'present' ? 'Present' : 'Absent',
     note: (note || '').trim()
   });
@@ -419,6 +474,48 @@ app.post('/notes/delete', requireAuth, (req, res) => {
 });
 
 // ---------------- Reminders ----------------
+// Feeds the notification bell in the top bar: pending reminders, soonest first
+app.get('/api/notifications', requireAuth, (req, res) => {
+  const t = tzParts(new Date());
+  const pad = n => String(n).padStart(2, '0');
+  const todayStr = t.year + '-' + pad(t.month) + '-' + pad(t.day);
+  const items = store.getReminders(req.session.user.id)
+    .filter(r => !r.done)
+    .map(r => ({
+      subject: r.subject || 'Reminder',
+      task: r.task || '',
+      dueDate: r.dueDate || '',
+      state: !r.dueDate ? 'none' : (r.dueDate < todayStr ? 'overdue' : (r.dueDate === todayStr ? 'today' : 'upcoming'))
+    }))
+    .sort((x, y) => (x.dueDate || '9999').localeCompare(y.dueDate || '9999'));
+  const me = req.session.user;
+  const announcements = readAnnouncements()
+    .filter(n => n.audience === 'all' || (n.audience === 'year' && n.year === me.year))
+    .slice(0, 6)
+    .map(n => ({ type: 'announcement', id: n.id, subject: n.title, task: n.message, dueDate: '', state: 'announce', when: n.createdLabel }));
+  res.json({ count: items.length, items: announcements.concat(items.slice(0, 8)) });
+});
+
+// Owner panel: post a message that appears in every student's bell
+app.get('/admin', requireAdmin, (req, res) => {
+  res.render('admin', { user: req.session.user, announcements: readAnnouncements(), years: ['First Year', 'Second Year', 'Third Year', 'Fourth Year'], sent: req.query.sent === '1' });
+});
+app.post('/admin/announce', requireAdmin, (req, res) => {
+  const title = String(req.body.title || '').trim().slice(0, 80);
+  const message = String(req.body.message || '').trim().slice(0, 400);
+  if (!title) return res.redirect('/admin');
+  const audience = req.body.audience === 'year' ? 'year' : 'all';
+  const list = readAnnouncements();
+  const now = new Date();
+  list.unshift({ id: id(), title, message, audience, year: audience === 'year' ? String(req.body.year || '') : '', createdAt: now.toISOString(), createdLabel: fmtDate(now) + ', ' + fmtTime(now) });
+  writeAnnouncements(list.slice(0, 100));
+  res.redirect('/admin?sent=1');
+});
+app.post('/admin/announce/delete', requireAdmin, (req, res) => {
+  writeAnnouncements(readAnnouncements().filter(n => n.id !== req.body.announceId));
+  res.redirect('/admin');
+});
+
 app.post('/reminders/add', requireAuth, (req, res) => {
   const user = req.session.user;
   const { subject, task, dueDate } = req.body;

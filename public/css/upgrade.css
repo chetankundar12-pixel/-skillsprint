@@ -760,3 +760,29 @@ select option, select optgroup { background: #10142a; color: #fff; }
 @media (max-width: 700px) { .admin-form { grid-template-columns: 1fr; } }
 .notif-item.is-announce .notif-dot { background: #22d3ee; }
 .notif-item.is-announce em { color: #67e8f9; }
+
+
+/* ---- 24. Study library ---- */
+.pill-row { display: flex; flex-wrap: wrap; gap: 8px; margin: 12px 0; }
+.pill {
+  padding: 7px 14px; border-radius: 999px; border: 1px solid var(--border);
+  background: rgba(255,255,255,.04); color: var(--muted); font-size: .84rem; font-weight: 600;
+  transition: background .2s, color .2s, border-color .2s;
+}
+.pill:hover { color: #fff; background: rgba(255,255,255,.08); }
+.pill.is-active { color: #fff; background: linear-gradient(135deg, #8b5cf6, #3b82f6); border-color: transparent; }
+.lib-heading { margin: 20px 0 10px; font-size: .95rem; }
+.lib-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 12px; }
+.lib-card {
+  display: flex; flex-direction: column; gap: 6px; padding: 14px; border-radius: 14px;
+  border: 1px solid var(--border); background: rgba(255,255,255,.03); color: var(--text);
+  transition: transform .2s, border-color .2s, background .2s;
+}
+.lib-card:hover { transform: translateY(-2px); border-color: rgba(139,92,246,.5); background: rgba(255,255,255,.06); }
+.lib-card b { font-size: .92rem; }
+.lib-sub { color: var(--muted); font-size: .8rem; }
+.lib-type { align-self: flex-start; padding: 2px 9px; border-radius: 999px; font-size: .68rem; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; background: rgba(139,92,246,.18); color: #c4b5fd; }
+.lib-pyq { background: rgba(245,158,11,.16); color: #fcd34d; }
+.lib-notes { background: rgba(34,211,238,.14); color: #67e8f9; }
+.lib-open { display: inline-flex; align-items: center; gap: 5px; margin-top: 4px; color: #a78bfa; font-size: .82rem; font-weight: 600; }
+.lib-open svg { width: 14px; height: 14px; }

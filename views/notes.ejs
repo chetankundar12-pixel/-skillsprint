@@ -26,6 +26,44 @@
 
         <div class="section-card">
           <div class="section-head">
+            <h3>Study Library</h3>
+          </div>
+          <p class="hint-text">Syllabus, previous year papers and notes, sorted by semester.</p>
+
+          <div class="pill-row" role="tablist" aria-label="Syllabus scheme">
+            <% schemes.forEach(sc => { %>
+              <a class="pill <%= sc === libScheme ? 'is-active' : '' %>" href="/notes?scheme=<%= encodeURIComponent(sc) %>&sem=<%= libSem %>"><%= sc %></a>
+            <% }) %>
+          </div>
+          <div class="pill-row" aria-label="Semester">
+            <% allSems.forEach(n => { %>
+              <a class="pill <%= n === libSem ? 'is-active' : '' %>" href="/notes?scheme=<%= encodeURIComponent(libScheme) %>&sem=<%= n %>">Sem <%= n %></a>
+            <% }) %>
+          </div>
+
+          <% if (library.length === 0) { %>
+            <p class="hint-text">Nothing added for <%= libScheme %> · Sem <%= libSem %> yet. Check back soon.</p>
+          <% } else { %>
+            <% resTypes.forEach(t => { const group = library.filter(r => r.type === t); if (!group.length) return; %>
+              <h4 class="lib-heading"><%= t === 'PYQ' ? 'Previous Year Papers' : t %></h4>
+              <div class="lib-grid">
+                <% group.forEach(r => { %>
+                  <a class="lib-card" href="<%= r.url %>" target="_blank" rel="noopener noreferrer">
+                    <span class="lib-type lib-<%= r.type.toLowerCase() %>"><%= r.type %></span>
+                    <b><%= r.title %></b>
+                    <% if (r.subject) { %><span class="lib-sub"><%= r.subject %></span><% } %>
+                    <span class="lib-open">Open
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 17 17 7"/><path d="M8 7h9v9"/></svg>
+                    </span>
+                  </a>
+                <% }) %>
+              </div>
+            <% }) %>
+          <% } %>
+        </div>
+
+        <div class="section-card">
+          <div class="section-head">
             <h3>Write a new note</h3>
             <button class="focus-toggle">🎯 Focus</button>
           </div>

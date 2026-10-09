@@ -48,6 +48,16 @@ function readAnnouncements() {
 function writeAnnouncements(list) {
   try { fs.writeFileSync(ANNOUNCE_FILE, JSON.stringify(list, null, 2)); } catch (e) { console.error('Could not save announcements', e.message); }
 }
+// Study library (syllabus / PYQ / notes links, e.g. Google Drive), managed by the owner
+const RESOURCE_FILE = path.join(__dirname, 'data', 'resources.json');
+const SCHEMES = ['NEP 2020', 'R-19'];
+const RES_TYPES = ['Syllabus', 'PYQ', 'Notes'];
+function readResources() {
+  try { return JSON.parse(fs.readFileSync(RESOURCE_FILE, 'utf8')); } catch (e) { return []; }
+}
+function writeResources(list) {
+  try { fs.writeFileSync(RESOURCE_FILE, JSON.stringify(list, null, 2)); } catch (e) { console.error('Could not save resources', e.message); }
+}
 app.use((req, res, next) => {
   res.locals.isAdmin = isAdminUser(req.session && req.session.user);
   next();
@@ -458,7 +468,12 @@ app.get('/notes', requireAuth, (req, res) => {
   const user = req.session.user;
   const notes = store.getNotes(user.id);
   const mySubjects = syllabus.subjectsForYearStream(user.year, user.stream).map(s => s.name);
-  res.render('notes', { user, notes, mySubjects });
+  const allSems = [1, 2, 3, 4, 5, 6, 7, 8];
+  const libSem = resolveSem(req, allSems);
+  if (SCHEMES.includes(req.query.scheme)) req.session.scheme = req.query.scheme;
+  const libScheme = SCHEMES.includes(req.session.scheme) ? req.session.scheme : SCHEMES[0];
+  const library = readResources().filter(r => r.sem === libSem && r.scheme === libScheme);
+  res.render('notes', { user, notes, mySubjects, allSems, libSem, libScheme, schemes: SCHEMES, resTypes: RES_TYPES, library });
 });
 
 app.post('/notes/add', requireAuth, (req, res) => {
@@ -498,7 +513,7 @@ app.get('/api/notifications', requireAuth, (req, res) => {
 
 // Owner panel: post a message that appears in every student's bell
 app.get('/admin', requireAdmin, (req, res) => {
-  res.render('admin', { user: req.session.user, announcements: readAnnouncements(), years: ['First Year', 'Second Year', 'Third Year', 'Fourth Year'], sent: req.query.sent === '1' });
+  res.render('admin', { user: req.session.user, resources: readResources(), schemes: SCHEMES, resTypes: RES_TYPES, announcements: readAnnouncements(), years: ['First Year', 'Second Year', 'Third Year', 'Fourth Year'], sent: req.query.sent === '1', added: req.query.added === '1', bad: req.query.bad === '1' });
 });
 app.post('/admin/announce', requireAdmin, (req, res) => {
   const title = String(req.body.title || '').trim().slice(0, 80);
@@ -510,6 +525,25 @@ app.post('/admin/announce', requireAdmin, (req, res) => {
   list.unshift({ id: id(), title, message, audience, year: audience === 'year' ? String(req.body.year || '') : '', createdAt: now.toISOString(), createdLabel: fmtDate(now) + ', ' + fmtTime(now) });
   writeAnnouncements(list.slice(0, 100));
   res.redirect('/admin?sent=1');
+});
+app.post('/admin/resource', requireAdmin, (req, res) => {
+  const title = String(req.body.title || '').trim().slice(0, 100);
+  const url = String(req.body.url || '').trim();
+  const sem = Number(req.body.sem);
+  if (!title || !/^https?:\/\//i.test(url) || !(sem >= 1 && sem <= 8)) return res.redirect('/admin?bad=1');
+  const list = readResources();
+  list.push({
+    id: id(), title, url,
+    scheme: SCHEMES.includes(req.body.scheme) ? req.body.scheme : SCHEMES[0],
+    type: RES_TYPES.includes(req.body.type) ? req.body.type : 'Notes',
+    sem, subject: String(req.body.subject || '').trim().slice(0, 80)
+  });
+  writeResources(list);
+  res.redirect('/admin?added=1');
+});
+app.post('/admin/resource/delete', requireAdmin, (req, res) => {
+  writeResources(readResources().filter(r => r.id !== req.body.resourceId));
+  res.redirect('/admin');
 });
 app.post('/admin/announce/delete', requireAdmin, (req, res) => {
   writeAnnouncements(readAnnouncements().filter(n => n.id !== req.body.announceId));
@@ -622,13 +656,20 @@ app.use((req, res) => {
 app.use((err, req, res, next) => {
   console.error(err); // full detail stays in your own terminal/logs
   const isDev = process.env.NODE_ENV !== 'production';
+  if (res.headersSent) return next(err);
+  const message = isDev
+    ? err.message // only shown to you locally, never in production
+    : "That's on us, not you — try again in a moment.";
   res.status(500).render('error', {
     code: 500,
     title: 'Something went wrong',
-    message: isDev
-      ? err.message // only shown to you locally, never in production
-      : "That's on us, not you — try again in a moment.",
+    message,
     user: req.session.user || null
+  }, (renderErr, html) => {
+    // If the error page itself can't render (e.g. views/error.ejs is missing),
+    // fall back to plain text so the REAL error is visible instead of a second one.
+    if (renderErr) return res.type('text').send('Something went wrong: ' + message);
+    res.send(html);
   });
 });
 

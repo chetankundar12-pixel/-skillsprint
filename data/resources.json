@@ -1,1 +1,255 @@
-[]
+[
+  {
+    "id": "2886ff5aff3d98b7",
+    "title": "SE_AIML",
+    "url": "/library/5df042ed068630c1.pdf",
+    "file": "5df042ed068630c1.pdf",
+    "ext": "PDF",
+    "scheme": "NEP 2020",
+    "type": "Syllabus",
+    "sem": 3,
+    "subject": ""
+  },
+  {
+    "id": "89aa82e70155dc1b",
+    "title": "SE_CHEMICAL",
+    "url": "/library/3ff03d7f07bb985a.pdf",
+    "file": "3ff03d7f07bb985a.pdf",
+    "ext": "PDF",
+    "scheme": "NEP 2020",
+    "type": "Syllabus",
+    "sem": 3,
+    "subject": ""
+  },
+  {
+    "id": "1582fea904f13543",
+    "title": "SE_CIVIL",
+    "url": "/library/02f5c54a03892ca7.pdf",
+    "file": "02f5c54a03892ca7.pdf",
+    "ext": "PDF",
+    "scheme": "NEP 2020",
+    "type": "Syllabus",
+    "sem": 3,
+    "subject": ""
+  },
+  {
+    "id": "854ec02d9365332d",
+    "title": "SE_COMPUTER",
+    "url": "/library/db1faa92bcbe3d5e.pdf",
+    "file": "db1faa92bcbe3d5e.pdf",
+    "ext": "PDF",
+    "scheme": "NEP 2020",
+    "type": "Syllabus",
+    "sem": 3,
+    "subject": ""
+  },
+  {
+    "id": "8fc2f66be949ae1d",
+    "title": "SE_CSE",
+    "url": "/library/1aa57c68b2425fed.pdf",
+    "file": "1aa57c68b2425fed.pdf",
+    "ext": "PDF",
+    "scheme": "NEP 2020",
+    "type": "Syllabus",
+    "sem": 3,
+    "subject": ""
+  },
+  {
+    "id": "156a7ab7df566330",
+    "title": "SE_ECS",
+    "url": "/library/b2f9a8b44d21fa78.pdf",
+    "file": "b2f9a8b44d21fa78.pdf",
+    "ext": "PDF",
+    "scheme": "NEP 2020",
+    "type": "Syllabus",
+    "sem": 3,
+    "subject": ""
+  },
+  {
+    "id": "3a89c58f5f0be688",
+    "title": "SE_Electrical_",
+    "url": "/library/f023845bdcd45ae0.pdf",
+    "file": "f023845bdcd45ae0.pdf",
+    "ext": "PDF",
+    "scheme": "NEP 2020",
+    "type": "Syllabus",
+    "sem": 3,
+    "subject": ""
+  },
+  {
+    "id": "52ed77ad8eb747dd",
+    "title": "SE_EXTC",
+    "url": "/library/7c5649d7b69fe3c0.pdf",
+    "file": "7c5649d7b69fe3c0.pdf",
+    "ext": "PDF",
+    "scheme": "NEP 2020",
+    "type": "Syllabus",
+    "sem": 3,
+    "subject": ""
+  },
+  {
+    "id": "54e55ea6df649700",
+    "title": "SE_IT",
+    "url": "/library/11883bd08557a687.pdf",
+    "file": "11883bd08557a687.pdf",
+    "ext": "PDF",
+    "scheme": "NEP 2020",
+    "type": "Syllabus",
+    "sem": 3,
+    "subject": ""
+  },
+  {
+    "id": "9d2f234d8aca262e",
+    "title": "SE_MECHANICAL",
+    "url": "/library/395a598daae0205b.pdf",
+    "file": "395a598daae0205b.pdf",
+    "ext": "PDF",
+    "scheme": "NEP 2020",
+    "type": "Syllabus",
+    "sem": 3,
+    "subject": ""
+  },
+  {
+    "id": "0e6b3c22fb51920e",
+    "title": "T.E.-IOT_Cyber-Security",
+    "url": "/library/015a4523401416c1.pdf",
+    "file": "015a4523401416c1.pdf",
+    "ext": "PDF",
+    "scheme": "NEP 2020",
+    "type": "Syllabus",
+    "sem": 5,
+    "subject": ""
+  },
+  {
+    "id": "2676937e6b829ae1",
+    "title": "TE_AIML",
+    "url": "/library/6b26e23ea74f7cc9.pdf",
+    "file": "6b26e23ea74f7cc9.pdf",
+    "ext": "PDF",
+    "scheme": "NEP 2020",
+    "type": "Syllabus",
+    "sem": 5,
+    "subject": ""
+  },
+  {
+    "id": "9709e3b5c42c3895",
+    "title": "TE_Automation and Robotics_",
+    "url": "/library/78958bd55278852a.pdf",
+    "file": "78958bd55278852a.pdf",
+    "ext": "PDF",
+    "scheme": "NEP 2020",
+    "type": "Syllabus",
+    "sem": 5,
+    "subject": ""
+  },
+  {
+    "id": "b3b92cccd16af253",
+    "title": "TE_Civil NEP_",
+    "url": "/library/d1dabff51831a76f.pdf",
+    "file": "d1dabff51831a76f.pdf",
+    "ext": "PDF",
+    "scheme": "NEP 2020",
+    "type": "Syllabus",
+    "sem": 5,
+    "subject": ""
+  },
+  {
+    "id": "cece4ae0de831648",
+    "title": "TE_COMPS",
+    "url": "/library/d5bed648f80abbd5.pdf",
+    "file": "d5bed648f80abbd5.pdf",
+    "ext": "PDF",
+    "scheme": "NEP 2020",
+    "type": "Syllabus",
+    "sem": 5,
+    "subject": ""
+  },
+  {
+    "id": "f0cb02be7dc22187",
+    "title": "TE_Computer Science and Engineering (AIML)",
+    "url": "/library/aa87142a55b8cf4d.pdf",
+    "file": "aa87142a55b8cf4d.pdf",
+    "ext": "PDF",
+    "scheme": "NEP 2020",
+    "type": "Syllabus",
+    "sem": 5,
+    "subject": ""
+  },
+  {
+    "id": "e236168061ee1e9b",
+    "title": "TE_Computer Science and Engineering (Internet of Things and Cyber Security Including Blockchain)",
+    "url": "/library/4a2b038a76a8a46f.pdf",
+    "file": "4a2b038a76a8a46f.pdf",
+    "ext": "PDF",
+    "scheme": "NEP 2020",
+    "type": "Syllabus",
+    "sem": 5,
+    "subject": ""
+  },
+  {
+    "id": "376b0f4d111825c8",
+    "title": "TE_Electrical Engineering_",
+    "url": "/library/da866cb6b0f38de5.pdf",
+    "file": "da866cb6b0f38de5.pdf",
+    "ext": "PDF",
+    "scheme": "NEP 2020",
+    "type": "Syllabus",
+    "sem": 5,
+    "subject": ""
+  },
+  {
+    "id": "840240b1f1ab5f9e",
+    "title": "FE_All branches_",
+    "url": "/library/04b6ce9c740e8dd1.pdf",
+    "file": "04b6ce9c740e8dd1.pdf",
+    "ext": "PDF",
+    "scheme": "NEP 2020",
+    "type": "Notes",
+    "sem": 1,
+    "subject": ""
+  },
+  {
+    "id": "a21ef20868145018",
+    "title": "SE_AIDS",
+    "url": "/library/24b99b0686ff192c.pdf",
+    "file": "24b99b0686ff192c.pdf",
+    "ext": "PDF",
+    "scheme": "NEP 2020",
+    "type": "Notes",
+    "sem": 3,
+    "subject": ""
+  },
+  {
+    "id": "d488dcc8bdf7c81a",
+    "title": "TE_EXTC",
+    "url": "/library/5bce00417c18b3ae.pdf",
+    "file": "5bce00417c18b3ae.pdf",
+    "ext": "PDF",
+    "scheme": "NEP 2020",
+    "type": "Notes",
+    "sem": 5,
+    "subject": ""
+  },
+  {
+    "id": "6112af9a01ea563e",
+    "title": "TE_IT",
+    "url": "/library/a98cd8c200094844.pdf",
+    "file": "a98cd8c200094844.pdf",
+    "ext": "PDF",
+    "scheme": "NEP 2020",
+    "type": "Notes",
+    "sem": 5,
+    "subject": ""
+  },
+  {
+    "id": "a6aff1c709911082",
+    "title": "TE_MECHANICAL",
+    "url": "/library/b3f7509ca61b9814.pdf",
+    "file": "b3f7509ca61b9814.pdf",
+    "ext": "PDF",
+    "scheme": "NEP 2020",
+    "type": "Notes",
+    "sem": 5,
+    "subject": ""
+  }
+]

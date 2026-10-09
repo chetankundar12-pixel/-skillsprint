@@ -10,7 +10,7 @@
 </head>
 <body>
   <%
-  var added = locals.added || false, bad = locals.bad || false;
+  var why = locals.why || '', added = locals.added || false, bad = locals.bad || false;
   var resources = locals.resources || [];
   var schemes = locals.schemes || ['NEP 2020', 'R-19'];
   var resTypes = locals.resTypes || ['Syllabus', 'PYQ', 'Notes'];
@@ -58,38 +58,31 @@
           </form>
         </div>
 
-        <div class="section-card">
+        <div class="section-card" id="libraryCard">
           <div class="section-head"><h3>Add to Study Library</h3></div>
-          <p class="hint-text">Upload PDFs, Word, PowerPoint or images (up to 25 MB each, 10 at a time). They appear straight away for students.</p>
+          <p class="hint-text">Upload everything in one go. Every file gets its own row where you can set scheme, semester and type.</p>
           <% if (added) { %><div class="notice">Added. Students will see it in Notes &amp; Resources.</div><% } %>
-          <% if (bad) { %><div class="notice warn">Please choose at least one file (PDF, DOC, PPT, XLS, image or ZIP, max 25 MB) and a semester.</div><% } %>
-          <form method="post" action="/admin/resource" enctype="multipart/form-data" class="admin-form">
-            <div>
-              <label class="field-label">Scheme</label>
-              <div class="field"><select name="scheme"><% schemes.forEach(sc => { %><option value="<%= sc %>"><%= sc %></option><% }) %></select></div>
+          <% if (bad) { %><div class="notice warn">Upload failed. <%= why || "Choose at least one file and a semester for each." %></div><% } %>
+          <form method="post" action="/admin/resource" enctype="multipart/form-data" id="bulkForm">
+            <div class="file-drop" id="dropZone">
+              <label class="field-label" for="libFiles">Choose all your files at once</label>
+              <input type="file" id="libFiles" name="files" multiple accept=".pdf,.doc,.docx,.ppt,.pptx,.xls,.xlsx,.txt,.zip,.jpg,.jpeg,.png">
+              <span class="file-hint">Select as many as you like (up to 40, 25 MB each) or drag them here. Each file gets its own row below, already sorted using its file name (e.g. "sem3 pyq nep.pdf").</span>
             </div>
-            <div>
-              <label class="field-label">Semester</label>
-              <div class="field"><select name="sem"><% [1,2,3,4,5,6,7,8].forEach(n => { %><option value="<%= n %>">Semester <%= n %></option><% }) %></select></div>
+
+            <div id="bulkTools" class="bulk-tools" hidden>
+              <b>Set for all files</b>
+              <select id="allScheme"><option value="">Scheme</option><% schemes.forEach(sc => { %><option value="<%= sc %>"><%= sc %></option><% }) %></select>
+              <select id="allSem"><option value="">Semester</option><% [1,2,3,4,5,6,7,8].forEach(n => { %><option value="<%= n %>">Sem <%= n %></option><% }) %></select>
+              <select id="allType"><option value="">Type</option><% resTypes.forEach(t => { %><option value="<%= t %>"><%= t %></option><% }) %></select>
             </div>
-            <div>
-              <label class="field-label">Type</label>
-              <div class="field"><select name="type"><% resTypes.forEach(t => { %><option value="<%= t %>"><%= t === 'PYQ' ? 'PYQ (previous year papers)' : t %></option><% }) %></select></div>
+
+            <div id="bulkRows" class="bulk-rows"></div>
+            <button type="submit" class="btn btn-primary" id="bulkSubmit" hidden>Upload all files</button>
+            <div id="uploadStatus" class="upload-status" role="status" aria-live="polite" hidden>
+              <div class="upload-bar"><span id="uploadBar"></span></div>
+              <p id="uploadMsg"></p>
             </div>
-            <div>
-              <label class="field-label">Subject (optional)</label>
-              <div class="field"><input type="text" name="subject" maxlength="80" placeholder="e.g. Engineering Mathematics I"></div>
-            </div>
-            <div>
-              <label class="field-label">Title (optional)</label>
-              <div class="field"><input type="text" name="title" maxlength="100" placeholder="Leave empty to use the file name"></div>
-            </div>
-            <div class="file-drop">
-              <label class="field-label" for="libFiles">Files</label>
-              <input type="file" id="libFiles" name="files" multiple required accept=".pdf,.doc,.docx,.ppt,.pptx,.xls,.xlsx,.txt,.zip,.jpg,.jpeg,.png">
-              <span class="file-hint" id="libFilesHint">No file chosen</span>
-            </div>
-            <button type="submit" class="btn btn-primary">Add to library</button>
           </form>
 
           <% if (resources.length) { %>
@@ -137,8 +130,99 @@
     </div>
   </div>
   <script>
-    var lf = document.getElementById('libFiles'), lh = document.getElementById('libFilesHint');
-    if (lf) lf.addEventListener('change', function () { lh.textContent = lf.files.length ? lf.files.length + ' file(s) selected' : 'No file chosen'; });
+    (function () {
+      var schemes = <%- JSON.stringify(schemes) %>, types = <%- JSON.stringify(resTypes) %>;
+      var input = document.getElementById('libFiles'), rows = document.getElementById('bulkRows');
+      var tools = document.getElementById('bulkTools'), submit = document.getElementById('bulkSubmit');
+      var zone = document.getElementById('dropZone');
+      if (!input) return;
+      var files = [];
+
+      function guess(name) {
+        var n = name.toLowerCase().replace(/[_\-.]+/g, ' ');
+        var sem = (n.match(/sem(?:ester)?\s*([1-8])/) || n.match(/\bs([1-8])\b/) || [])[1] || '1';
+        var type = /pyq|paper|question|\bqp\b|previous/.test(n) ? 'PYQ' : (/syllabus|syll|curriculum/.test(n) ? 'Syllabus' : 'Notes');
+        var scheme = /nep/.test(n) ? 'NEP 2020' : (/r\s*19|2019|\bold\b/.test(n) ? 'R-19' : schemes[0]);
+        return { sem: sem, type: type, scheme: scheme };
+      }
+      function opt(list, val, fmt) {
+        return list.map(function (v) { return '<option value="' + v + '"' + (String(v) === String(val) ? ' selected' : '') + '>' + (fmt ? fmt(v) : v) + '</option>'; }).join('');
+      }
+      function esc(t) { return String(t).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
+      function sync() {
+        var dt = new DataTransfer();
+        files.forEach(function (f) { dt.items.add(f.file); });
+        input.files = dt.files;
+        tools.hidden = submit.hidden = !files.length;
+        rows.innerHTML = '';
+        files.forEach(function (f, i) {
+          var g = f.g, row = document.createElement('div');
+          row.className = 'bulk-row';
+          row.innerHTML =
+            '<div class="bulk-name"><b title="' + esc(f.file.name) + '">' + esc(f.file.name) + '</b><span>' + (f.file.size / 1048576).toFixed(1) + ' MB</span></div>' +
+            '<select name="scheme" aria-label="Scheme">' + opt(schemes, g.scheme) + '</select>' +
+            '<select name="sem" aria-label="Semester">' + opt([1,2,3,4,5,6,7,8], g.sem, function (v) { return 'Sem ' + v; }) + '</select>' +
+            '<select name="type" aria-label="Type">' + opt(types, g.type) + '</select>' +
+            '<input type="text" name="subject" placeholder="Subject (optional)" value="' + esc(g.subject || '') + '">' +
+            '<input type="text" name="title" placeholder="Title (optional)" value="">' +
+            '<button type="button" class="bulk-x" aria-label="Remove file" data-i="' + i + '">&times;</button>';
+          rows.appendChild(row);
+        });
+      }
+      function add(list) {
+        Array.prototype.forEach.call(list, function (file) {
+          if (files.some(function (f) { return f.file.name === file.name && f.file.size === file.size; })) return;
+          if (files.length >= 40) return;
+          files.push({ file: file, g: guess(file.name) });
+        });
+        sync();
+      }
+      input.addEventListener('change', function () { add(input.files); });
+      rows.addEventListener('click', function (e) {
+        var b = e.target.closest('.bulk-x'); if (!b) return;
+        files.splice(Number(b.dataset.i), 1); sync();
+      });
+      ['allScheme', 'allSem', 'allType'].forEach(function (id) {
+        var sel = document.getElementById(id);
+        sel.addEventListener('change', function () {
+          if (!sel.value) return;
+          var name = id === 'allScheme' ? 'scheme' : (id === 'allSem' ? 'sem' : 'type');
+          rows.querySelectorAll('select[name="' + name + '"]').forEach(function (s) { s.value = sel.value; });
+          sel.value = '';
+        });
+      });
+      ['dragenter', 'dragover'].forEach(function (ev) { zone.addEventListener(ev, function (e) { e.preventDefault(); zone.classList.add('is-drag'); }); });
+      ['dragleave', 'drop'].forEach(function (ev) { zone.addEventListener(ev, function (e) { e.preventDefault(); zone.classList.remove('is-drag'); }); });
+      zone.addEventListener('drop', function (e) { if (e.dataTransfer && e.dataTransfer.files.length) add(e.dataTransfer.files); });
+      document.getElementById('bulkForm').addEventListener('submit', function (e) {
+        e.preventDefault();
+        if (!files.length) return;
+        var status = document.getElementById('uploadStatus'), bar = document.getElementById('uploadBar'), msg = document.getElementById('uploadMsg');
+        var setMsg = function (t, bad) { msg.textContent = t; msg.className = bad ? 'is-bad' : ''; };
+        status.hidden = false; bar.style.width = '0%'; setMsg('Uploading ' + files.length + ' file(s)…');
+        submit.disabled = true;
+        var xhr = new XMLHttpRequest();
+        xhr.open('POST', '/admin/resource');
+        xhr.setRequestHeader('X-Requested-With', 'xhr');
+        xhr.upload.onprogress = function (ev) {
+          if (ev.lengthComputable) { var p = Math.round(ev.loaded / ev.total * 100); bar.style.width = p + '%'; setMsg('Uploading… ' + p + '%'); }
+        };
+        xhr.onload = function () {
+          var data = {}; try { data = JSON.parse(xhr.responseText); } catch (err) {}
+          if (xhr.status === 200 && data.ok) {
+            bar.style.width = '100%'; setMsg('Done! ' + data.count + ' file(s) uploaded.');
+            setTimeout(function () { location.href = '/admin?added=1#libraryCard'; }, 700);
+          } else {
+            submit.disabled = false;
+            setMsg('Upload failed: ' + (data.why || xhr.responseText.slice(0, 200) || ('server said ' + xhr.status)), true);
+          }
+        };
+        xhr.onerror = function () { submit.disabled = false; setMsg('Upload failed: could not reach the server. Is it still running?', true); };
+        xhr.send(new FormData(e.target));
+      });
+    })();
+  </script>
+  <script>
     var aud = document.getElementById('audSel'), yw = document.getElementById('yearWrap');
     aud.addEventListener('change', function () { yw.style.display = aud.value === 'year' ? 'block' : 'none'; });
   </script>

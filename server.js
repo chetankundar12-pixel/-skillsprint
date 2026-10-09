@@ -520,7 +520,7 @@ app.get('/api/notifications', requireAuth, (req, res) => {
 
 // Owner panel: post a message that appears in every student's bell
 app.get('/admin', requireAdmin, (req, res) => {
-  res.render('admin', { user: req.session.user, resources: readResources(), schemes: SCHEMES, resTypes: RES_TYPES, announcements: readAnnouncements(), years: ['First Year', 'Second Year', 'Third Year', 'Fourth Year'], sent: req.query.sent === '1', added: req.query.added === '1', bad: req.query.bad === '1' });
+  res.render('admin', { user: req.session.user, resources: readResources(), schemes: SCHEMES, resTypes: RES_TYPES, announcements: readAnnouncements(), years: ['First Year', 'Second Year', 'Third Year', 'Fourth Year'], why: String(req.query.why || ''), sent: req.query.sent === '1', added: req.query.added === '1', bad: req.query.bad === '1' });
 });
 app.post('/admin/announce', requireAdmin, (req, res) => {
   const title = String(req.body.title || '').trim().slice(0, 80);
@@ -546,33 +546,45 @@ if (multer) {
       destination: (req, file, cb) => cb(null, LIBRARY_DIR),
       filename: (req, file, cb) => cb(null, id() + path.extname(file.originalname).toLowerCase())
     }),
-    limits: { fileSize: 25 * 1024 * 1024, files: 10 },
+    limits: { fileSize: 25 * 1024 * 1024, files: 40 },
     fileFilter: (req, file, cb) => cb(null, ALLOWED_EXT.includes(path.extname(file.originalname).toLowerCase()))
-  }).array('files', 10);
+  }).array('files', 40);
 }
 app.post('/admin/resource', requireAdmin, (req, res) => {
   if (!libraryUpload) return res.status(500).type('text').send('File upload needs one extra package. Stop the server, run:  npm install multer  and start it again.');
   libraryUpload(req, res, err => {
     const files = (req.files || []);
     const discard = () => files.forEach(f => fs.unlink(f.path, () => {}));
-    const sem = Number(req.body.sem);
-    if (err || !files.length || !(sem >= 1 && sem <= 8)) { discard(); return res.redirect('/admin?bad=1'); }
-    const title = String(req.body.title || '').trim().slice(0, 100);
+    // Each file has its own row in the form: scheme[], sem[], type[], subject[], title[] (same order as the files)
+    const arr = v => (v === undefined ? [] : [].concat(v));
+    const F = { scheme: arr(req.body.scheme), sem: arr(req.body.sem), type: arr(req.body.type), subject: arr(req.body.subject), title: arr(req.body.title) };
+    const wantsJson = req.get('X-Requested-With') === 'xhr';
+    const fail = why => {
+      discard(); console.error('[library upload] failed:', why);
+      if (wantsJson) return res.status(400).json({ ok: false, why });
+      return res.redirect('/admin?bad=1&why=' + encodeURIComponent(why));
+    };
+    if (err) return fail(err.code === 'LIMIT_FILE_SIZE' ? 'A file is bigger than 25 MB.' : (err.message || 'Upload error'));
+    if (!files.length) return fail('No file was received. Allowed: PDF, DOC, DOCX, PPT, PPTX, XLS, XLSX, TXT, ZIP, JPG, PNG.');
+    if (files.some((f, i) => !(Number(F.sem[i]) >= 1 && Number(F.sem[i]) <= 8))) return fail('Semester missing for a file.');
+    console.log('[library upload] saved', files.length, 'file(s)');
     const list = readResources();
-    files.forEach(f => {
+    files.forEach((f, i) => {
       const base = path.basename(f.originalname, path.extname(f.originalname)).slice(0, 100);
       list.push({
         id: id(),
-        title: files.length === 1 && title ? title : (title ? title + ' - ' + base : base),
+        title: String(F.title[i] || '').trim().slice(0, 100) || base,
         url: '/library/' + f.filename,
         file: f.filename,
         ext: path.extname(f.filename).slice(1).toUpperCase(),
-        scheme: SCHEMES.includes(req.body.scheme) ? req.body.scheme : SCHEMES[0],
-        type: RES_TYPES.includes(req.body.type) ? req.body.type : 'Notes',
-        sem, subject: String(req.body.subject || '').trim().slice(0, 80)
+        scheme: SCHEMES.includes(F.scheme[i]) ? F.scheme[i] : SCHEMES[0],
+        type: RES_TYPES.includes(F.type[i]) ? F.type[i] : 'Notes',
+        sem: Number(F.sem[i]),
+        subject: String(F.subject[i] || '').trim().slice(0, 80)
       });
     });
     writeResources(list);
+    if (wantsJson) return res.json({ ok: true, count: files.length });
     res.redirect('/admin?added=1');
   });
 });

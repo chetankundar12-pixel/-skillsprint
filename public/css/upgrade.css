@@ -798,3 +798,35 @@ select option, select optgroup { background: #10142a; color: #fff; }
 .file-hint { font-size: .78rem; color: var(--muted); }
 .lib-card { position: relative; }
 .lib-ext { position: absolute; top: 12px; right: 12px; font-size: .68rem; font-weight: 700; letter-spacing: .05em; color: var(--muted); }
+
+
+/* ---- 26. Bulk upload rows ---- */
+.file-drop.is-drag { border-color: #22d3ee; background: rgba(34,211,238,.08); }
+.bulk-tools { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin: 14px 0 4px; padding: 12px 14px; border-radius: 12px; border: 1px solid var(--border); background: rgba(255,255,255,.03); font-size: .85rem; }
+.bulk-tools[hidden], #bulkSubmit[hidden] { display: none; }
+.bulk-rows { display: flex; flex-direction: column; gap: 8px; margin: 12px 0; }
+.bulk-row { display: grid; grid-template-columns: minmax(150px, 1.6fr) 110px 90px 110px 1.2fr 1.2fr 34px; gap: 8px; align-items: center; padding: 10px; border: 1px solid var(--border); border-radius: 12px; background: rgba(255,255,255,.03); }
+.bulk-row select, .bulk-row input[type=text], .bulk-tools select {
+  width: 100%; min-width: 0; padding: 8px 10px; border-radius: 9px; border: 1px solid var(--border);
+  background: #0c1024; color: #fff; font: inherit; font-size: .84rem;
+}
+.bulk-tools select { width: auto; }
+.bulk-name { display: flex; flex-direction: column; min-width: 0; }
+.bulk-name b { font-size: .86rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.bulk-name span { font-size: .72rem; color: var(--muted); }
+.bulk-x { width: 30px; height: 30px; border-radius: 8px; border: 1px solid var(--border); background: transparent; color: var(--muted); font-size: 1.1rem; cursor: pointer; }
+.bulk-x:hover { color: #fca5a5; border-color: #fca5a5; }
+@media (max-width: 900px) {
+  .bulk-row { grid-template-columns: 1fr 1fr 1fr 34px; }
+  .bulk-name { grid-column: 1 / -1; }
+  .bulk-row input[type=text] { grid-column: 1 / 4; }
+}
+
+
+/* ---- 27. Upload progress ---- */
+.upload-status { margin-top: 14px; }
+.upload-status[hidden] { display: none; }
+.upload-bar { height: 8px; border-radius: 999px; background: rgba(255,255,255,.08); overflow: hidden; }
+.upload-bar span { display: block; height: 100%; width: 0; background: linear-gradient(90deg, #8b5cf6, #22d3ee); transition: width .2s; }
+.upload-status p { margin: 10px 0 0; font-size: .88rem; color: var(--muted); }
+.upload-status p.is-bad { color: #fca5a5; font-weight: 600; }

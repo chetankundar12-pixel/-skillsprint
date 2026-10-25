@@ -49,6 +49,33 @@ function readAnnouncements() {
 function writeAnnouncements(list) {
   try { fs.writeFileSync(ANNOUNCE_FILE, JSON.stringify(list, null, 2)); } catch (e) { console.error('Could not save announcements', e.message); }
 }
+// Exams / tests the owner schedules; students see a countdown on the dashboard and in the bell
+const EXAM_FILE = path.join(__dirname, 'data', 'exams.json');
+function readExams() { try { return JSON.parse(fs.readFileSync(EXAM_FILE, 'utf8')); } catch (e) { return []; } }
+function writeExams(list) { try { fs.writeFileSync(EXAM_FILE, JSON.stringify(list, null, 2)); } catch (e) { console.error('Could not save exams', e.message); } }
+// Whole days between today (in APP_TZ) and a YYYY-MM-DD date. 0 = today, negative = past.
+function daysUntil(dateStr) {
+  const t = tzParts(new Date());
+  const [y, m, d] = String(dateStr).split('-').map(Number);
+  if (!y || !m || !d) return NaN;
+  return Math.round((Date.UTC(y, m - 1, d) - Date.UTC(t.year, t.month - 1, t.day)) / 86400000);
+}
+function examsFor(user) {
+  return readExams()
+    .filter(x => x.audience === 'all' || (x.audience === 'year' && x.year === user.year))
+    .map(x => {
+      const daysLeft = daysUntil(x.date);
+      const [y, m, d] = x.date.split('-').map(Number);
+      return {
+        id: x.id, title: x.title, note: x.note || '', date: x.date, daysLeft,
+        dateLabel: new Date(Date.UTC(y, m - 1, d)).toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' })
+      };
+    })
+    .filter(x => !isNaN(x.daysLeft) && x.daysLeft >= 0)
+    .sort((p, q) => p.daysLeft - q.daysLeft);
+}
+function countdownText(n) { return n === 0 ? 'Today' : (n === 1 ? 'Tomorrow' : 'in ' + n + ' days'); }
+
 // Study library (syllabus / PYQ / notes links, e.g. Google Drive), managed by the owner
 const RESOURCE_FILE = path.join(__dirname, 'data', 'resources.json');
 const SCHEMES = ['NEP 2020', 'R-19'];
@@ -63,6 +90,116 @@ app.use((req, res, next) => {
   res.locals.isAdmin = isAdminUser(req.session && req.session.user);
   next();
 });
+// ---------------- Theme, activity & study streak ----------------
+// Counts which days each student opened the app. Used for the streak chip in the
+// top bar and the owner's stats. Saved in data/activity.json.
+const ACTIVITY_FILE = path.join(__dirname, 'data', 'activity.json');
+let activity = {};
+try { activity = JSON.parse(fs.readFileSync(ACTIVITY_FILE, 'utf8')); } catch (e) { activity = {}; }
+let activityTimer = null;
+function flushActivity() {
+  clearTimeout(activityTimer);
+  activityTimer = setTimeout(() => {
+    try { fs.writeFileSync(ACTIVITY_FILE, JSON.stringify(activity)); } catch (e) { console.error('Could not save activity', e.message); }
+  }, 1500);
+}
+// YYYY-MM-DD for today in APP_TZ, shifted by offset days
+function todayKey(offset) {
+  const t = tzParts(new Date());
+  return new Date(Date.UTC(t.year, t.month - 1, t.day + (offset || 0))).toISOString().slice(0, 10);
+}
+function touchActivity(u) {
+  if (!u || !u.id) return;
+  const today = todayKey(0);
+  let rec = activity[u.id];
+  let changed = false;
+  if (!rec) { rec = activity[u.id] = { id: u.id, firstDay: today, days: [] }; changed = true; }
+  ['email', 'fullName', 'college', 'year', 'stream'].forEach(k => { if (u[k] && rec[k] !== u[k]) { rec[k] = u[k]; changed = true; } });
+  if (rec.days[rec.days.length - 1] !== today) { rec.days.push(today); rec.days = rec.days.slice(-400); changed = true; }
+  if (changed) flushActivity();
+}
+function streakFor(userId) {
+  const rec = activity[userId];
+  if (!rec || !rec.days.length) return { count: 0, best: 0 };
+  const set = new Set(rec.days);
+  let start = set.has(todayKey(0)) ? 0 : -1; // a streak survives until the end of the next day
+  let count = 0;
+  while (set.has(todayKey(start - count))) count++;
+  const sorted = Array.from(set).sort();
+  let best = 1, run = 1;
+  for (let i = 1; i < sorted.length; i++) {
+    const gap = Math.round((Date.parse(sorted[i]) - Date.parse(sorted[i - 1])) / 86400000);
+    run = gap === 1 ? run + 1 : 1;
+    if (run > best) best = run;
+  }
+  return { count, best: Math.max(best, count) };
+}
+app.use((req, res, next) => {
+  const m = (req.headers.cookie || '').match(/(?:^|;\s*)ss_theme=(light|dark)/);
+  res.locals.theme = m ? m[1] : 'dark';
+  res.locals.streak = null;
+  const u = req.session && req.session.user;
+  if (u && req.method === 'GET' && !req.path.startsWith('/api') && !/\.[a-z0-9]+$/i.test(req.path)) {
+    touchActivity(u);
+    res.locals.streak = streakFor(u.id);
+  }
+  next();
+});
+
+// Owner stats card
+function adminStats() {
+  const recs = Object.values(activity).filter(r => !adminEmails.includes(String(r.email || '').toLowerCase()));
+  const today = todayKey(0), weekAgo = todayKey(-6);
+  const count = (arr, key) => {
+    const m = {}; arr.forEach(r => { const k = r[key] || 'Not set'; m[k] = (m[k] || 0) + 1; });
+    return Object.entries(m).sort((a, b) => b[1] - a[1]);
+  };
+  return {
+    total: recs.length,
+    newWeek: recs.filter(r => r.firstDay >= weekAgo).length,
+    activeToday: recs.filter(r => r.days.includes(today)).length,
+    activeWeek: recs.filter(r => r.days.some(d => d >= weekAgo)).length,
+    byYear: count(recs, 'year'),
+    colleges: count(recs, 'college').slice(0, 6),
+    topFiles: readResources().filter(r => r.opens > 0).sort((a, b) => b.opens - a.opens).slice(0, 5)
+  };
+}
+
+// ---------------- Password reset (owner-assisted, no email service needed) ----------------
+const RESET_FILE = path.join(__dirname, 'data', 'resets.json');
+function readResets() { try { return JSON.parse(fs.readFileSync(RESET_FILE, 'utf8')); } catch (e) { return []; } }
+function writeResets(l) { try { fs.writeFileSync(RESET_FILE, JSON.stringify(l, null, 2)); } catch (e) { console.error('Could not save resets', e.message); } }
+
+// ---------------- Attendance warnings + timetable helpers ----------------
+// Subjects below 75%: attending the next N lectures in a row brings them back (N = 3*total - 4*attended)
+function attendanceAlerts(userId, sem) {
+  const att = store.getAttendance(userId);
+  if (!att) return [];
+  return Object.entries(att.subjects || {})
+    .filter(([, s]) => !sem || s.sem === sem || s.sem == null)
+    .map(([name, s]) => {
+      const a = s.attended || 0, t = a + (s.missed || 0);
+      return { name, a, t, low: t > 0 && a * 4 < t * 3, pct: t ? Math.floor((a / t) * 100) : null, need: Math.max(1, 3 * t - 4 * a) };
+    })
+    .filter(x => x.low)
+    .sort((p, q) => p.pct - q.pct);
+}
+const TT_FILE = path.join(__dirname, 'data', 'timetables.json');
+const TT_DAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+function readTT() { try { return JSON.parse(fs.readFileSync(TT_FILE, 'utf8')); } catch (e) { return {}; } }
+function writeTT(o) { try { fs.writeFileSync(TT_FILE, JSON.stringify(o, null, 2)); } catch (e) { console.error('Could not save timetable', e.message); } }
+function todayName() { return new Date().toLocaleDateString('en-US', { timeZone: APP_TZ, weekday: 'short' }); }
+function subjectsForTimetable(user, sem) {
+  let att = store.getAttendance(user.id);
+  if (!att) {
+    const subjects = {};
+    syllabus.subjectsForYearStream(user.year, user.stream).forEach(s => { subjects[s.name] = { sem: s.sem, attended: 0, missed: 0, history: [] }; });
+    att = { subjects };
+    store.saveAttendance(user.id, att);
+  }
+  return { att, names: Object.entries(att.subjects).filter(([, s]) => !sem || s.sem === sem || s.sem == null).map(([n]) => n) };
+}
+
 function requireAdmin(req, res, next) {
   if (!req.session.user) return res.redirect('/login');
   if (isAdminUser(req.session.user)) return next();
@@ -175,7 +312,7 @@ if (googleReady) {
 // ---------------- Public pages ----------------
 app.get('/', (req, res) => res.render('landing'));
 
-app.get('/login', (req, res) => res.render('login', { googleReady, notice: req.query.google || req.query.signup }));
+app.get('/login', (req, res) => res.render('login', { googleReady, notice: req.query.google || req.query.signup || (req.query.reset ? 'reset' : undefined) }));
 
 app.post('/login', (req, res) => {
   const { email, password } = req.body;
@@ -184,7 +321,44 @@ app.post('/login', (req, res) => {
     return res.render('login', { googleReady, notice: 'invalid' });
   }
   req.session.user = user;
+  // "Remember me" keeps the student signed in for 30 days; otherwise it ends with the browser session
+  if (req.body.remember) req.session.cookie.maxAge = 30 * 24 * 60 * 60 * 1000;
   res.redirect('/dashboard');
+});
+
+// ---- Forgot password: student asks, owner generates a one-time code, student sets a new password ----
+app.get('/forgot', (req, res) => res.render('forgot', { sent: req.query.sent === '1' }));
+app.post('/forgot', (req, res) => {
+  const email = String(req.body.email || '').trim().slice(0, 120);
+  if (email) {
+    const exists = !!(store.getUser(email) || store.getUser(email.toLowerCase()));
+    const list = readResets().filter(r => !(r.email.toLowerCase() === email.toLowerCase() && !r.used));
+    const now = new Date();
+    list.unshift({ id: id(), email, hasAccount: exists, requestedAt: now.toISOString(), requestedLabel: fmtDate(now) + ', ' + fmtTime(now), code: null, expiresAt: null, attempts: 0, used: false });
+    writeResets(list.slice(0, 100));
+  }
+  // same answer whether or not the email exists, so nobody can probe for accounts
+  res.redirect('/forgot?sent=1');
+});
+app.get('/reset', (req, res) => res.render('reset', { error: '', email: String(req.query.email || '') }));
+app.post('/reset', (req, res) => {
+  const email = String(req.body.email || '').trim();
+  const code = String(req.body.code || '').trim();
+  const pw = String(req.body.password || '');
+  const fail = m => res.status(400).render('reset', { error: m, email });
+  if (pw.length < 6) return fail('Password must be at least 6 characters.');
+  const list = readResets();
+  const rec = list.find(r => !r.used && r.code && r.email.toLowerCase() === email.toLowerCase());
+  if (!rec) return fail('No active reset code for this email. Ask the owner to generate one.');
+  if (rec.attempts >= 5 || Date.now() > rec.expiresAt) return fail('This code has expired. Request a new one.');
+  if (rec.code !== code) { rec.attempts++; writeResets(list); return fail('That code is not right.'); }
+  const user = store.getUser(rec.email) || store.getUser(email) || store.getUser(email.toLowerCase());
+  if (!user) return fail('No account found for this email.');
+  user.passwordHash = bcrypt.hashSync(pw, 10);
+  store.saveUser(user);
+  rec.used = true;
+  writeResets(list);
+  res.redirect('/login?reset=1');
 });
 
 app.get('/signup', (req, res) => res.render('signup', {
@@ -303,7 +477,11 @@ app.get('/dashboard', requireAuth, (req, res) => {
 
   res.render('dashboard', {
     user, overall, reminders, overallCgpaVal, semSgpaVal, notesCount,
-    currentSem, availableSems
+    currentSem, availableSems,
+    exams: examsFor(user).slice(0, 4).map(x => ({ ...x, when: countdownText(x.daysLeft) })),
+    alerts: attendanceAlerts(user.id, currentSem),
+    todayName: todayName(),
+    todayClasses: ((readTT()[user.id + '|' + currentSem] || {})[todayName()] || [])
   });
 });
 
@@ -454,7 +632,7 @@ app.post('/attendance/mark', requireAuth, (req, res) => {
   });
 
   store.saveAttendance(user.id, attendance);
-  res.redirect('/attendance' + (sem ? '?sem=' + sem : ''));
+  res.redirect((req.body.back === 'timetable' ? '/timetable' : '/attendance') + (sem ? '?sem=' + sem : ''));
 });
 
 app.post('/attendance/add-subject', requireAuth, (req, res) => {
@@ -468,6 +646,38 @@ app.post('/attendance/add-subject', requireAuth, (req, res) => {
     }
   }
   res.redirect('/attendance' + (sem ? '?sem=' + sem : ''));
+});
+
+// ---------------- Timetable ----------------
+app.get('/timetable', requireAuth, (req, res) => {
+  const user = req.session.user;
+  const availableSems = [1, 2, 3, 4, 5, 6, 7, 8];
+  const currentSem = resolveSem(req, availableSems);
+  const { att, names } = subjectsForTimetable(user, currentSem);
+  const tt = readTT()[user.id + '|' + currentSem] || {};
+  const day = todayName();
+  const today = todayKey(0);
+  const todayList = (tt[day] || []).filter(n => names.includes(n)).map(n => {
+    const hist = (att.subjects[n].history || []).filter(h => {
+      const p = tzParts(new Date(h.timestamp));
+      return p.year + '-' + String(p.month).padStart(2, '0') + '-' + String(p.day).padStart(2, '0') === today;
+    });
+    const last = hist[hist.length - 1];
+    return { name: n, marked: last ? last.status + ' at ' + fmtTime(new Date(last.timestamp)) : '' };
+  });
+  res.render('timetable', { user, currentSem, availableSems, days: TT_DAYS, names, tt, today: day, todayList, saved: req.query.saved === '1' });
+});
+app.post('/timetable/save', requireAuth, (req, res) => {
+  const user = req.session.user;
+  const sem = Number(req.body.sem);
+  if (!(sem >= 1 && sem <= 8)) return res.redirect('/timetable');
+  const { names } = subjectsForTimetable(user, sem);
+  const all = readTT();
+  const week = {};
+  TT_DAYS.forEach(d => { week[d] = [].concat(req.body['day_' + d] || []).filter(n => names.includes(n)); });
+  all[user.id + '|' + sem] = week;
+  writeTT(all);
+  res.redirect('/timetable?sem=' + sem + '&saved=1');
 });
 
 // ---------------- Notes ----------------
@@ -515,12 +725,54 @@ app.get('/api/notifications', requireAuth, (req, res) => {
     .filter(n => n.audience === 'all' || (n.audience === 'year' && n.year === me.year))
     .slice(0, 6)
     .map(n => ({ type: 'announcement', id: n.id, subject: n.title, task: n.message, dueDate: '', state: 'announce', when: n.createdLabel }));
-  res.json({ count: items.length, items: announcements.concat(items.slice(0, 8)) });
+  const examItems = examsFor(me).filter(x => x.daysLeft <= 14).slice(0, 4)
+    .map(x => ({ type: 'exam', id: 'exam:' + x.id, subject: x.title, task: x.dateLabel, dueDate: '', state: 'exam', when: countdownText(x.daysLeft) }));
+  const warnItems = attendanceAlerts(me.id, Number(req.session.currentSem) || null).slice(0, 4)
+    .map(x => ({ type: 'warning', id: 'warn:' + x.name + ':' + x.pct, subject: x.name, task: x.pct + '% attendance. Attend the next ' + x.need + ' lecture' + (x.need === 1 ? '' : 's') + ' to reach 75%.', dueDate: '', state: 'warn', when: x.pct + '% now' }));
+  res.json({ count: items.length, items: warnItems.concat(announcements, examItems, items.slice(0, 8)) });
+});
+
+// Counts how often each library file is opened (shown to the owner as "most opened"), then forwards to it
+app.get('/r/:id', requireAuth, (req, res) => {
+  const list = readResources();
+  const r = list.find(x => x.id === req.params.id);
+  if (!r) return res.redirect('/notes');
+  r.opens = (r.opens || 0) + 1;
+  writeResources(list);
+  res.redirect(r.url);
+});
+
+// Top-bar search: pages, study library, the student's notes and reminders
+app.get('/api/search', requireAuth, (req, res) => {
+  const q = String(req.query.q || '').trim().toLowerCase().slice(0, 60);
+  if (q.length < 2) return res.json({ results: [] });
+  const me = req.session.user;
+  const has = (...vals) => vals.some(v => v && String(v).toLowerCase().includes(q));
+  const results = [];
+
+  [['Dashboard', '/dashboard', 'dashboard home overview'], ['Notes & Resources', '/notes', 'notes resources library syllabus pyq'], ['CGPA Calculator', '/cgpa', 'cgpa sgpa grade marks calculator'],
+   ['Attendance', '/attendance', 'attendance present absent lecture bunk'], ['Progress', '/progress', 'progress report stats'], ['Reminders', '/reminders', 'reminders tasks homework assignment'],
+   ['Community', '/community', 'community chat batch'], ['Edit Profile', '/profile', 'profile account name semester year']]
+    .forEach(([label, href, keys]) => { if (has(label, keys)) results.push({ kind: 'Page', label, sub: '', href }); });
+
+  readResources().forEach(r => {
+    if (has(r.title, r.subject, r.type, r.scheme, 'sem ' + r.sem, 'semester ' + r.sem)) {
+      results.push({ kind: r.type === 'PYQ' ? 'PYQ' : r.type, label: r.title, sub: r.scheme + ' · Sem ' + r.sem + (r.subject ? ' · ' + r.subject : ''), href: '/r/' + r.id, external: true });
+    }
+  });
+  store.getNotes(me.id).forEach(n => {
+    if (has(n.title, n.subject, n.content)) results.push({ kind: 'Note', label: n.title, sub: n.subject || '', href: '/notes' });
+  });
+  store.getReminders(me.id).forEach(r => {
+    if (!r.done && has(r.task, r.subject)) results.push({ kind: 'Reminder', label: r.task || r.subject, sub: (r.subject || '') + (r.dueDate ? ' · ' + r.dueDate : ''), href: '/reminders' });
+  });
+  examsFor(me).forEach(x => { if (has(x.title, 'exam test')) results.push({ kind: 'Exam', label: x.title, sub: x.dateLabel + ' · ' + countdownText(x.daysLeft), href: '/dashboard' }); });
+  res.json({ results: results.slice(0, 10) });
 });
 
 // Owner panel: post a message that appears in every student's bell
 app.get('/admin', requireAdmin, (req, res) => {
-  res.render('admin', { user: req.session.user, resources: readResources(), schemes: SCHEMES, resTypes: RES_TYPES, announcements: readAnnouncements(), years: ['First Year', 'Second Year', 'Third Year', 'Fourth Year'], why: String(req.query.why || ''), sent: req.query.sent === '1', added: req.query.added === '1', bad: req.query.bad === '1' });
+  res.render('admin', { user: req.session.user, stats: adminStats(), resets: readResets(), exams: readExams().sort((a, b) => a.date.localeCompare(b.date)), examAdded: req.query.exam === '1', examBad: req.query.badexam === '1', today: (() => { const t = tzParts(new Date()); return t.year + '-' + String(t.month).padStart(2, '0') + '-' + String(t.day).padStart(2, '0'); })(), resources: readResources(), schemes: SCHEMES, resTypes: RES_TYPES, announcements: readAnnouncements(), years: ['First Year', 'Second Year', 'Third Year', 'Fourth Year'], why: String(req.query.why || ''), sent: req.query.sent === '1', added: req.query.added === '1', bad: req.query.bad === '1' });
 });
 app.post('/admin/announce', requireAdmin, (req, res) => {
   const title = String(req.body.title || '').trim().slice(0, 80);
@@ -594,6 +846,30 @@ app.post('/admin/resource/delete', requireAdmin, (req, res) => {
   if (hit && hit.file) fs.unlink(path.join(LIBRARY_DIR, path.basename(hit.file)), () => {});
   writeResources(list.filter(r => r.id !== req.body.resourceId));
   res.redirect('/admin');
+});
+app.post('/admin/exam', requireAdmin, (req, res) => {
+  const title = String(req.body.title || '').trim().slice(0, 80);
+  const date = String(req.body.date || '').trim();
+  if (!title || !/^\d{4}-\d{2}-\d{2}$/.test(date)) return res.redirect('/admin?badexam=1#examCard');
+  const audience = req.body.audience === 'year' ? 'year' : 'all';
+  const list = readExams();
+  list.push({ id: id(), title, date, note: String(req.body.note || '').trim().slice(0, 120), audience, year: audience === 'year' ? String(req.body.year || '') : '' });
+  writeExams(list.slice(-200));
+  res.redirect('/admin?exam=1#examCard');
+});
+app.post('/admin/exam/delete', requireAdmin, (req, res) => {
+  writeExams(readExams().filter(x => x.id !== req.body.examId));
+  res.redirect('/admin#examCard');
+});
+app.post('/admin/reset/generate', requireAdmin, (req, res) => {
+  const list = readResets();
+  const r = list.find(x => x.id === req.body.resetId);
+  if (r) { r.code = String(crypto.randomInt(100000, 1000000)); r.expiresAt = Date.now() + 24 * 60 * 60 * 1000; r.attempts = 0; r.used = false; writeResets(list); }
+  res.redirect('/admin#resetCard');
+});
+app.post('/admin/reset/delete', requireAdmin, (req, res) => {
+  writeResets(readResets().filter(x => x.id !== req.body.resetId));
+  res.redirect('/admin#resetCard');
 });
 app.post('/admin/announce/delete', requireAdmin, (req, res) => {
   writeAnnouncements(readAnnouncements().filter(n => n.id !== req.body.announceId));

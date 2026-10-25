@@ -142,16 +142,16 @@
         return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
       });
     };
-    var labels = { announce: 'Announcement', overdue: 'Overdue', today: 'Due today', upcoming: 'Upcoming', none: 'No due date' };
+    var labels = { warn: 'Low attendance', exam: 'Exam', announce: 'Announcement', overdue: 'Overdue', today: 'Due today', upcoming: 'Upcoming', none: 'No due date' };
     var loadNotifs = function () {
       fetch('/api/notifications', { credentials: 'same-origin', headers: { Accept: 'application/json' } })
         .then(function (r) { return r.json(); })
         .then(function (d) {
           var seen = [];
           try { seen = JSON.parse(localStorage.getItem('ss_seen_announce') || '[]'); } catch (e) {}
-          var unseen = d.items.filter(function (n) { return n.type === 'announcement' && seen.indexOf(n.id) === -1; }).length;
-          var total = unseen + d.items.filter(function (n) { return n.type !== 'announcement'; }).length;
-          window.__ssAnnounceIds = d.items.filter(function (n) { return n.type === 'announcement'; }).map(function (n) { return n.id; });
+          var unseen = d.items.filter(function (n) { return n.type && seen.indexOf(n.id) === -1; }).length;
+          var total = unseen + d.items.filter(function (n) { return !n.type; }).length;
+          window.__ssAnnounceIds = d.items.filter(function (n) { return n.type; }).map(function (n) { return n.id; });
           notifBadge.hidden = !total;
           notifBadge.textContent = total > 9 ? '9+' : total;
           if (!d.items.length) {
@@ -159,7 +159,7 @@
             return;
           }
           notifList.innerHTML = d.items.map(function (n) {
-            return '<li><a href="' + (n.type === 'announcement' ? '#' : '/reminders') + '" class="notif-item is-' + n.state + '">' +
+            return '<li><a href="' + (n.type === 'announcement' ? '#' : (n.type === 'exam' ? '/dashboard' : (n.type === 'warning' ? '/attendance' : '/reminders'))) + '" class="notif-item is-' + n.state + '">' +
               '<span class="notif-dot" aria-hidden="true"></span><span class="notif-text">' +
               '<b>' + esc(n.subject) + '</b>' + (n.task ? '<span>' + esc(n.task) + '</span>' : '') +
               '<em>' + labels[n.state] + (n.when ? ' \u00b7 ' + esc(n.when) : '') + (n.dueDate ? ' \u00b7 ' + esc(n.dueDate) : '') + '</em></span></a></li>';
@@ -188,4 +188,100 @@
     document.addEventListener('keydown', function (e) { if (e.key === 'Escape') closeNotifs(); });
     loadNotifs();
   }
+
+  /* --- Top-bar search --------------------------------------------------
+     Debounced calls to /api/search, arrow-key navigation, "/" to focus. */
+  var sInput = document.getElementById('searchInput');
+  var sList = document.getElementById('searchResults');
+  if (sInput && sList) {
+    var sTimer = null, sItems = [], sIdx = -1, sSeq = 0;
+    var sEsc = function (v) {
+      return String(v).replace(/[&<>"']/g, function (c) {
+        return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+      });
+    };
+    var sClose = function () { sList.hidden = true; sIdx = -1; };
+    var sMark = function () {
+      Array.prototype.forEach.call(sList.querySelectorAll('li[data-href]'), function (li, i) {
+        li.classList.toggle('is-active', i === sIdx);
+      });
+    };
+    var sRender = function (results, q) {
+      sItems = results;
+      sIdx = -1;
+      if (!results.length) {
+        sList.innerHTML = '<li class="search-empty">No results for \u201c' + sEsc(q) + '\u201d</li>';
+      } else {
+        sList.innerHTML = results.map(function (r) {
+          return '<li role="option" data-href="' + sEsc(r.href) + '"' + (r.external ? ' data-ext="1"' : '') + '>' +
+            '<span class="search-kind">' + sEsc(r.kind) + '</span>' +
+            '<span class="search-text"><b>' + sEsc(r.label) + '</b>' + (r.sub ? '<em>' + sEsc(r.sub) + '</em>' : '') + '</span></li>';
+        }).join('');
+      }
+      sList.hidden = false;
+    };
+    var sGo = function (li) {
+      if (!li) return;
+      if (li.getAttribute('data-ext')) window.open(li.getAttribute('data-href'), '_blank', 'noopener');
+      else window.location.href = li.getAttribute('data-href');
+    };
+    sInput.addEventListener('input', function () {
+      clearTimeout(sTimer);
+      var q = sInput.value.trim();
+      if (q.length < 2) { sClose(); return; }
+      sTimer = setTimeout(function () {
+        var mine = ++sSeq;
+        fetch('/api/search?q=' + encodeURIComponent(q), { credentials: 'same-origin', headers: { Accept: 'application/json' } })
+          .then(function (r) { return r.json(); })
+          .then(function (d) { if (mine === sSeq) sRender(d.results || [], q); })
+          .catch(function () {});
+      }, 200);
+    });
+    sInput.addEventListener('keydown', function (e) {
+      var rows = sList.querySelectorAll('li[data-href]');
+      if (e.key === 'ArrowDown' && rows.length) { e.preventDefault(); sIdx = (sIdx + 1) % rows.length; sMark(); }
+      else if (e.key === 'ArrowUp' && rows.length) { e.preventDefault(); sIdx = (sIdx - 1 + rows.length) % rows.length; sMark(); }
+      else if (e.key === 'Enter') { e.preventDefault(); sGo(rows[sIdx >= 0 ? sIdx : 0]); }
+      else if (e.key === 'Escape') { sClose(); sInput.blur(); }
+    });
+    sInput.addEventListener('focus', function () { if (sList.innerHTML && sInput.value.trim().length >= 2) sList.hidden = false; });
+    sList.addEventListener('mousedown', function (e) { var li = e.target.closest('li[data-href]'); if (li) { e.preventDefault(); sGo(li); } });
+    document.addEventListener('click', function (e) { if (!e.target.closest('#searchWrap')) sClose(); });
+    document.addEventListener('keydown', function (e) {
+      var tag = (document.activeElement && document.activeElement.tagName) || '';
+      if (e.key === '/' && !/INPUT|TEXTAREA|SELECT/.test(tag)) { e.preventDefault(); sInput.focus(); }
+    });
+  }
+
+  /* --- Light / dark mode ----------------------------------------------
+     The choice is kept in a cookie (ss_theme) so the server can render the
+     right theme on the very first paint, with no flash. */
+  var themeBtn = document.getElementById('themeBtn');
+  if (themeBtn) {
+    themeBtn.addEventListener('click', function () {
+      var next = document.documentElement.getAttribute('data-theme') === 'light' ? 'dark' : 'light';
+      document.documentElement.setAttribute('data-theme', next);
+      try { document.cookie = 'ss_theme=' + next + '; path=/; max-age=31536000; SameSite=Lax'; } catch (e) {}
+    });
+  }
+
+  /* --- Show / hide password -------------------------------------------- */
+  var eyeOn = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7S1 12 1 12z"/><circle cx="12" cy="12" r="3"/></svg>';
+  var eyeOff = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17.9 17.9A10.9 10.9 0 0 1 12 19c-7 0-11-7-11-7a19.8 19.8 0 0 1 5.1-5.9M9.9 4.2A10.5 10.5 0 0 1 12 4c7 0 11 7 11 7a19.7 19.7 0 0 1-3.2 4.2M14.1 14.1a3 3 0 1 1-4.2-4.2"/><line x1="1" y1="1" x2="23" y2="23"/></svg>';
+  document.querySelectorAll('input[type="password"]').forEach(function (inp) {
+    var box = inp.closest('.field');
+    if (!box || box.querySelector('.eye-btn')) return;
+    var b = document.createElement('button');
+    b.type = 'button'; b.className = 'eye-btn';
+    b.setAttribute('aria-label', 'Show password'); b.setAttribute('aria-pressed', 'false');
+    b.innerHTML = eyeOn;
+    b.addEventListener('click', function () {
+      var show = inp.type === 'password';
+      inp.type = show ? 'text' : 'password';
+      b.innerHTML = show ? eyeOff : eyeOn;
+      b.setAttribute('aria-pressed', String(show));
+      b.setAttribute('aria-label', show ? 'Hide password' : 'Show password');
+    });
+    box.appendChild(b);
+  });
 })();
